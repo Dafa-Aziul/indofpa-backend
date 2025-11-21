@@ -3,6 +3,7 @@ import prisma from "../config/prisma.js";
 export const getKuesionerService = async ({
     search,
     status,
+    kategori,
     page,
     limit,
 }) => {
@@ -20,6 +21,7 @@ export const getKuesionerService = async ({
             ]
             : undefined,
         status: status || undefined,
+        kategori: kategori ? Number(kategori) : undefined,
     };
 
     //Query utama 
@@ -44,5 +46,4 @@ export const getKuesionerService = async ({
             pages: Math.ceil(total / limit),
         }
     };
-
 };

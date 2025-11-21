@@ -205,9 +205,10 @@ model RevokedToken {
 }
 
 model Kategori {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   nama      String
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
+  updatedAt DateTime? @updatedAt
 
   kuesioner Kuesioner[] @relation("KategoriKuesioner")
 }

@@ -1,5 +1,7 @@
 import { Router } from "express";
-import authRoutes from "./authRoute.js";
+import authRoute from "./authRoute.js";
+import kuesionerRoute from "./kuesionerRoute.js"
+import kategoriRoute from "./kategoriRoute.js"
 
 const router = Router();
 
@@ -10,6 +12,8 @@ router.get("/", (req, res) => {
   });
 });
 
-router.use("/auth", authRoutes);
+router.use("/auth", authRoute);
+router.use("/kuesioner", kuesionerRoute);
+router.use("/kategori", kategoriRoute);
 
 export default router;

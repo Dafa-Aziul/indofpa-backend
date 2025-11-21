@@ -35,7 +35,7 @@ export const getKuesionerService = async ({
     });
 
     // Hitung total pagination
-    const total =  await prisma.kuesioner.count({ where });
+    const total = await prisma.kuesioner.count({ where });
 
     return {
         items,
@@ -47,3 +47,74 @@ export const getKuesionerService = async ({
         }
     };
 };
+
+export const getKuesionerByIdService = async (id) => {
+    const data = await prisma.kuesioner.findUnique({
+        where: { idKuesioner: Number(id) },
+        include: {
+            kategori: true,
+            indikator: {
+                include: {
+                    pertanyaan: {
+                        orderBy: {
+                            urutan: "asc",
+                        }
+                    },
+                },
+            },
+
+            distribusi: true,
+
+            _count: {
+                select: { responden: true }
+            },
+        },
+    });
+    return data;
+}
+
+export const createKuesionerService = async (data, userId) => {
+    const newKuesioner = await prisma.kuesioner.create({
+        data: {
+            idPembuat: userId,
+            idKategori: data.idKategori,
+            judul: data.judul,
+            tujuan: data.tujuan,
+            manfaat: data.manfaat,
+            status: data.status || "Draft",
+        },
+    });
+
+    return newKuesioner;
+};
+
+
+export const updateKuesionerService = async (id, updateData) => {
+    const allowedFields = ["judul", "tujuan", "manfaat", "status", "idKategori"];
+
+
+    const dataToUpdate = {};
+
+    //hanya memasukan field yang ada dalam allowedFields
+    for (const key of allowedFields) {
+        if (updateData[key] !== undefined) {
+            dataToUpdate[key] = updateData[key];
+        }
+    }
+
+
+    //eksekusi PATCH
+    const updated = await prisma.kuesioner.update({
+        where: { idKuesioner: Number(id) },
+        data: dataToUpdate
+    });
+
+    return updated;
+}
+
+export const deleteKuesionerService = async (id) => {
+    const data = await prisma.kuesioner.delete({
+        where: { idKuesioner: Number(id) }
+    });
+    return data;
+}

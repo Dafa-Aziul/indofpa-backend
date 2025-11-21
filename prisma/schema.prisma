@@ -83,14 +83,16 @@ model LogAktivitas {
 }
 
 model Kuesioner {
-  idKuesioner Int             @id @default(autoincrement())
-  idPembuat   Int
-  idKategori  Int
-  judul       String
-  tujuan      String?
-  manfaat     String?
-  status      StatusKuesioner @default(Draft)
-  createdAt   DateTime        @default(now())
+  idKuesioner   Int             @id @default(autoincrement())
+  idPembuat     Int
+  idKategori    Int
+  judul         String
+  tujuan        String?
+  manfaat       String?
+  estimasiMenit Int?
+  status        StatusKuesioner @default(Draft)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   pembuat    User                  @relation("PembuatKuesioner", fields: [idPembuat], references: [idUser])
   kategori   Kategori              @relation("KategoriKuesioner", fields: [idKategori], references: [id])
@@ -103,27 +105,31 @@ model Kuesioner {
 }
 
 model Indikator {
-  idIndikator   Int    @id @default(autoincrement())
+  idIndikator   Int      @id @default(autoincrement())
   idKuesioner   Int
   namaIndikator String
   kodeIndikator String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   kuesioner  Kuesioner        @relation(fields: [idKuesioner], references: [idKuesioner])
   pertanyaan Pertanyaan[]
-  score      RespondenScore[] // wajib karena skor per indikator
+  score      RespondenScore[]
 
   @@index([idKuesioner])
 }
 
 model Pertanyaan {
-  idPertanyaan   Int    @id @default(autoincrement())
+  idPertanyaan   Int      @id @default(autoincrement())
   idIndikator    Int
   teksPertanyaan String
   bobot          Int
   urutan         Int
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   indikator Indikator @relation(fields: [idIndikator], references: [idIndikator])
-  jawaban   Jawaban[] // menyimpan jawaban responden
+  jawaban   Jawaban[]
 
   @@index([idIndikator])
 }
@@ -205,10 +211,10 @@ model RevokedToken {
 }
 
 model Kategori {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   nama      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   kuesioner Kuesioner[] @relation("KategoriKuesioner")
 }

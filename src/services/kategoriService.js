@@ -45,19 +45,19 @@ export const getKategoriService = async ({
 };
 
 export const createKategoriService = async ({ nama }) => {
-    const data = await prisma.kategori.create({
+    const newKategori = await prisma.kategori.create({
         data: { nama }
     });
     
-    return data;
+    return newKategori;
 };
 
 export const updateKategoriService = async ( id ,{ nama }) => {
-    const data = await prisma.kategori.update({
+    const updated = await prisma.kategori.update({
         where: { id : Number(id)},
         data: { nama }
     });
-    return data;
+    return updated;
 }
 
 export const deleteKategoriService = async ( id ) => {

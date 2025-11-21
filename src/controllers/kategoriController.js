@@ -47,11 +47,11 @@ export const createKategori = async (req, res) => {
         }
 
         // ❗ Perbaikan: sebelumnya kamu memanggil createKategori(), padahal namanya createKategoriService()
-        const data = await createKategoriService({ nama });
+        const result = await createKategoriService({ nama });
 
         return success(res, {
             message: "Berhasil membuat kategori",
-            data,
+            data: result,
             code: 201,
         });
 
@@ -69,11 +69,11 @@ export const updateKategori = async (req, res) => {
         const { id } = req.params;
         const { nama } = req.body;
 
-        const data = await updateKategoriService(id, { nama });
+        const result = await updateKategoriService(id, { nama });
 
         return success(res, {
             message: "kategori berhasil diperbarui",
-            data,
+            data: result,
         });
     } catch (err) {
         return error(res, {
@@ -83,7 +83,6 @@ export const updateKategori = async (req, res) => {
         });
     }
 };
-
 
 export const deleteKategori = async ( req, res ) => {
     try {

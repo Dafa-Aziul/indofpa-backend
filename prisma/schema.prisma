@@ -1,0 +1,213 @@
+// =====================================
+// Prisma 7 Compatible Schema (Final)
+// =====================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ======================
+// ENUMS
+// ======================
+
+enum UsiaKategori {
+  USIA_18_24   @map("18-24")
+  USIA_25_34   @map("25-34")
+  USIA_35_44   @map("35-44")
+  USIA_45_54   @map("45-54")
+  USIA_55_64   @map("55-64")
+  USIA_65_PLUS @map("65+")
+}
+
+enum StatusKuesioner {
+  Draft
+  Publish
+  Arsip
+}
+
+enum JenisKelamin {
+  L
+  P
+}
+
+enum TingkatPendidikan {
+  TidakTamatSD @map("Tidak tamat SD")
+  SD
+  SMP
+  SMA
+  Diploma
+  S1
+  S2
+  S3
+}
+
+enum Agama {
+  Islam
+  KristenProtestan @map("Kristen Protestan")
+  Katolik
+  Hindu
+  Buddha
+  Konghucu
+  Kepercayaan
+}
+
+// ======================
+// MODELS
+// ======================
+
+model User {
+  idUser    Int      @id @default(autoincrement())
+  nama      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs      LogAktivitas[]
+  kuesioner Kuesioner[]    @relation("PembuatKuesioner")
+}
+
+model LogAktivitas {
+  idLog      Int      @id @default(autoincrement())
+  idUser     Int
+  aksi       String
+  keterangan String?
+  waktu      DateTime @default(now())
+
+  user User @relation(fields: [idUser], references: [idUser])
+}
+
+model Kuesioner {
+  idKuesioner Int             @id @default(autoincrement())
+  idPembuat   Int
+  idKategori  Int
+  judul       String
+  tujuan      String?
+  manfaat     String?
+  status      StatusKuesioner @default(Draft)
+  createdAt   DateTime        @default(now())
+
+  pembuat    User                  @relation("PembuatKuesioner", fields: [idPembuat], references: [idUser])
+  kategori   Kategori              @relation("KategoriKuesioner", fields: [idKategori], references: [id])
+  indikator  Indikator[]
+  responden  RespondenProfile[]
+  score      RespondenScore[]
+  distribusi DistribusiKuesioner[]
+
+  @@index([idPembuat])
+}
+
+model Indikator {
+  idIndikator   Int    @id @default(autoincrement())
+  idKuesioner   Int
+  namaIndikator String
+  kodeIndikator String
+
+  kuesioner  Kuesioner        @relation(fields: [idKuesioner], references: [idKuesioner])
+  pertanyaan Pertanyaan[]
+  score      RespondenScore[] // wajib karena skor per indikator
+
+  @@index([idKuesioner])
+}
+
+model Pertanyaan {
+  idPertanyaan   Int    @id @default(autoincrement())
+  idIndikator    Int
+  teksPertanyaan String
+  bobot          Int
+  urutan         Int
+
+  indikator Indikator @relation(fields: [idIndikator], references: [idIndikator])
+  jawaban   Jawaban[] // menyimpan jawaban responden
+
+  @@index([idIndikator])
+}
+
+model RespondenProfile {
+  idResponden       Int               @id @default(autoincrement())
+  idKuesioner       Int
+  nama              String?
+  email             String?
+  usiaKategori      UsiaKategori
+  jenisKelamin      JenisKelamin
+  tingkatPendidikan TingkatPendidikan
+  agama             Agama
+  pekerjaan         String?
+
+  waktuMulai   DateTime?
+  waktuSelesai DateTime?
+  createdAt    DateTime  @default(now())
+
+  kuesioner Kuesioner        @relation(fields: [idKuesioner], references: [idKuesioner])
+  jawaban   Jawaban[]
+  score     RespondenScore[]
+
+  @@unique([email, idKuesioner])
+  @@index([idKuesioner])
+}
+
+model Jawaban {
+  idJawaban    Int @id @default(autoincrement())
+  idResponden  Int
+  idPertanyaan Int
+  nilai        Int
+
+  responden  RespondenProfile @relation(fields: [idResponden], references: [idResponden])
+  pertanyaan Pertanyaan       @relation(fields: [idPertanyaan], references: [idPertanyaan])
+
+  @@unique([idResponden, idPertanyaan])
+  @@index([idResponden])
+  @@index([idPertanyaan])
+}
+
+model RespondenScore {
+  idRespondenScore Int      @id @default(autoincrement())
+  idKuesioner      Int
+  idResponden      Int
+  idIndikator      Int
+  scoreRaw         Float
+  scoreNormalized  Float?
+  createdAt        DateTime @default(now())
+
+  kuesioner Kuesioner        @relation(fields: [idKuesioner], references: [idKuesioner])
+  responden RespondenProfile @relation(fields: [idResponden], references: [idResponden])
+  indikator Indikator        @relation(fields: [idIndikator], references: [idIndikator])
+
+  @@index([idKuesioner])
+  @@index([idResponden])
+  @@index([idIndikator])
+}
+
+model DistribusiKuesioner {
+  idDistribusi   Int       @id @default(autoincrement())
+  idKuesioner    Int
+  kodeAkses      String
+  urlLink        String
+  tanggalMulai   DateTime?
+  tanggalSelesai DateTime?
+  catatan        String?
+
+  kuesioner Kuesioner @relation(fields: [idKuesioner], references: [idKuesioner])
+
+  @@index([idKuesioner])
+}
+
+model RevokedToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  expiredAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model Kategori {
+  id        Int      @id @default(autoincrement())
+  nama      String
+  createdAt DateTime @default(now())
+
+  kuesioner Kuesioner[] @relation("KategoriKuesioner")
+}

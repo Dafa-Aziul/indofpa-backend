@@ -1,28 +1,26 @@
 import prisma from "../config/prisma.js";
 
-// Menyimpan log login user
-export const logLogin = async (idUser) => {
+export const logLogin = async (userId, ip, userAgent) => {
   try {
     await prisma.logAktivitas.create({
       data: {
-        idUser,
+        userId,
         aksi: "LOGIN",
-        keterangan: "Login berhasil",
-        // waktu otomatis: prisma schema sudah default now()
+        keterangan: `IP: ${ip} | User-Agent: ${userAgent}`,
       },
     });
   } catch (error) {
-    // Jangan hentikan proses login jika log gagal
     console.error("❌ Gagal menyimpan log login:", error.message);
   }
 };
-export const logLogout = async (idUser) => {
+
+export const logLogout = async (userId, ip, userAgent) => {
   try {
     await prisma.logAktivitas.create({
       data: {
-        idUser,
+        userId,
         aksi: "LOGOUT",
-        keterangan: "Logout berhasil",
+        keterangan: `IP: ${ip} | User-Agent: ${userAgent}`,
       },
     });
   } catch (error) {

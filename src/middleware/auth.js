@@ -1,36 +1,31 @@
-import prisma from "../config/prisma.js";
-import jwt from "jsonwebtoken";
+import { verifyAccessToken } from "../utils/jwt.js";
+import { error } from "../utils/response.js";
 
 export const authMiddleware = async (req, res, next) => {
-  const header = req.headers.authorization;
+  const token = req.cookies.access_token;
 
-  if (!header || !header.startsWith("Bearer ")) {
-    return res.status(401).json({ success: false, message: "Token tidak ditemukan" });
-  }
-
-  const token = header.split(" ")[1];
-
-  // Simpan token agar diketahui controller
-  req.token = token;
-
-  // ❗ Check apakah token sudah di-blacklist
-  const revoked = await prisma.revokedToken.findUnique({
-    where: { token }
-  });
-
-  if (revoked) {
-    return res.status(401).json({ success: false, message: "Token sudah tidak berlaku (logout)" });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-
-  } catch (error) {
-    return res.status(401).json({
-      success: false,
-      message: "Token tidak valid atau kedaluwarsa",
+  // Tidak ada access token
+  if (!token) {
+    return error(res, {
+      message: "Unauthorized",
+      errors: "Access token missing",
+      code: 401,
     });
   }
+
+  // Verifikasi access token
+  const decoded = verifyAccessToken(token);
+
+  if (!decoded) {
+    return error(res, {
+      message: "Token tidak valid atau kedaluwarsa",
+      code: 401,
+    });
+  }
+
+  // Inject user ke req
+  req.user = decoded;
+  req.token = token;
+
+  next();
 };

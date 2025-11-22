@@ -1,8 +1,8 @@
 import { success, error } from "../utils/response.js";
-import { 
-    getKuesionerService, 
-    createKuesionerService, 
-    updateKuesionerService, 
+import {
+    getKuesionerService,
+    createKuesionerService,
+    updateKuesionerService,
     deleteKuesionerService,
     getKuesionerByIdService
 } from "../services/kuesionerService.js";
@@ -39,18 +39,18 @@ export const getKuesioner = async (req, res) => {
     }
 };
 
-export const getKuesionerById = async ( req, res) => {
+export const getKuesionerById = async (req, res) => {
     try {
         const { id } = req.params;
         const result = await getKuesionerByIdService(id);
 
-        return success( res, {
+        return success(res, {
             message: "Berhasil mengambil detail data kuesioner",
             data: result,
         })
     } catch (err) {
         return error(res, {
-            message: "Gagal mengambil detail data kuesioner", 
+            message: "Gagal mengambil detail data kuesioner",
             errors: err.message,
             code: 500
         })
@@ -59,7 +59,7 @@ export const getKuesionerById = async ( req, res) => {
 
 export const createKuesioner = async (req, res) => {
     try {
-        const userId = req.user.idUser;
+        const userId = req.user.userId;
         const body = req.body;
 
         const result = await createKuesionerService(body, userId);
@@ -68,8 +68,7 @@ export const createKuesioner = async (req, res) => {
             message: "Kuesioner berhasil dibuat",
             data: result,
             code: 201,
-        }
-        )
+        })
 
     } catch (err) {
         return error(res, {
@@ -80,17 +79,17 @@ export const createKuesioner = async (req, res) => {
     }
 }
 
-export const updateKuesioner = async ( req, res) => {
+export const updateKuesioner = async (req, res) => {
     try {
-        const {id} = req.params;
+        const { id } = req.params;
         const result = await updateKuesionerService(id, req.body);
-        
+
         return success(res, {
             message: "Kuesioner berhasil diperbarui",
             data: result
         })
     } catch (err) {
-        return error(res,{
+        return error(res, {
             message: "Gagal memperbarui kuesioner",
             errors: err.message,
             code: 500
@@ -99,7 +98,7 @@ export const updateKuesioner = async ( req, res) => {
     }
 }
 
-export const deleteKuesioner = async (req, res ) => {
+export const deleteKuesioner = async (req, res) => {
     try {
         const { id } = req.params;
         await deleteKuesionerService(id);
@@ -112,7 +111,7 @@ export const deleteKuesioner = async (req, res ) => {
             message: "Gagal menghapus kuesioner",
             errors: err.message,
             code: 500
-        })        
+        })
     }
 }
 

@@ -61,31 +61,32 @@ enum Agama {
 // ======================
 
 model User {
-  idUser    Int      @id @default(autoincrement())
+  userId    Int      @id @default(autoincrement())
   nama      String
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  logs      LogAktivitas[]
-  kuesioner Kuesioner[]    @relation("PembuatKuesioner")
+  logs         LogAktivitas[]
+  kuesioner    Kuesioner[]    @relation("PembuatKuesioner")
+  refreshToken RefreshToken[]
 }
 
 model LogAktivitas {
-  idLog      Int      @id @default(autoincrement())
-  idUser     Int
+  logId      Int      @id @default(autoincrement())
+  userId     Int
   aksi       String
   keterangan String?
   waktu      DateTime @default(now())
 
-  user User @relation(fields: [idUser], references: [idUser])
+  user User @relation(fields: [userId], references: [userId])
 }
 
 model Kuesioner {
-  idKuesioner   Int             @id @default(autoincrement())
-  idPembuat     Int
-  idKategori    Int
+  kuesionerId   Int             @id @default(autoincrement())
+  pembuatId     Int
+  kategoriId    Int
   judul         String
   tujuan        String?
   manfaat       String?
@@ -94,49 +95,49 @@ model Kuesioner {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
-  pembuat    User                  @relation("PembuatKuesioner", fields: [idPembuat], references: [idUser])
-  kategori   Kategori              @relation("KategoriKuesioner", fields: [idKategori], references: [id])
+  pembuat    User                  @relation("PembuatKuesioner", fields: [pembuatId], references: [userId])
+  kategori   Kategori              @relation("KategoriKuesioner", fields: [kategoriId], references: [kategoriId])
   indikator  Indikator[]
   responden  RespondenProfile[]
   score      RespondenScore[]
   distribusi DistribusiKuesioner[]
 
-  @@index([idPembuat])
+  @@index([pembuatId])
 }
 
 model Indikator {
-  idIndikator   Int      @id @default(autoincrement())
-  idKuesioner   Int
+  indikatorId   Int      @id @default(autoincrement())
+  kuesionerId   Int
   namaIndikator String
   kodeIndikator String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  kuesioner  Kuesioner        @relation(fields: [idKuesioner], references: [idKuesioner])
+  kuesioner  Kuesioner        @relation(fields: [kuesionerId], references: [kuesionerId])
   pertanyaan Pertanyaan[]
   score      RespondenScore[]
 
-  @@index([idKuesioner])
+  @@index([kuesionerId])
 }
 
 model Pertanyaan {
-  idPertanyaan   Int      @id @default(autoincrement())
-  idIndikator    Int
+  pertanyaanId   Int      @id @default(autoincrement())
+  indikatorId    Int
   teksPertanyaan String
   bobot          Int
   urutan         Int
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  indikator Indikator @relation(fields: [idIndikator], references: [idIndikator])
+  indikator Indikator @relation(fields: [indikatorId], references: [indikatorId])
   jawaban   Jawaban[]
 
-  @@index([idIndikator])
+  @@index([indikatorId])
 }
 
 model RespondenProfile {
-  idResponden       Int               @id @default(autoincrement())
-  idKuesioner       Int
+  respondenId       Int               @id @default(autoincrement())
+  kuesionerId       Int
   nama              String?
   email             String?
   usiaKategori      UsiaKategori
@@ -149,72 +150,74 @@ model RespondenProfile {
   waktuSelesai DateTime?
   createdAt    DateTime  @default(now())
 
-  kuesioner Kuesioner        @relation(fields: [idKuesioner], references: [idKuesioner])
+  kuesioner Kuesioner        @relation(fields: [kuesionerId], references: [kuesionerId])
   jawaban   Jawaban[]
   score     RespondenScore[]
 
-  @@unique([email, idKuesioner])
-  @@index([idKuesioner])
+  @@unique([email, kuesionerId])
+  @@index([kuesionerId])
 }
 
 model Jawaban {
-  idJawaban    Int @id @default(autoincrement())
-  idResponden  Int
-  idPertanyaan Int
+  jawabanId    Int @id @default(autoincrement())
+  respondenId  Int
+  pertanyaanId Int
   nilai        Int
 
-  responden  RespondenProfile @relation(fields: [idResponden], references: [idResponden])
-  pertanyaan Pertanyaan       @relation(fields: [idPertanyaan], references: [idPertanyaan])
+  responden  RespondenProfile @relation(fields: [respondenId], references: [respondenId])
+  pertanyaan Pertanyaan       @relation(fields: [pertanyaanId], references: [pertanyaanId])
 
-  @@unique([idResponden, idPertanyaan])
-  @@index([idResponden])
-  @@index([idPertanyaan])
+  @@unique([respondenId, pertanyaanId])
+  @@index([respondenId])
+  @@index([pertanyaanId])
 }
 
 model RespondenScore {
-  idRespondenScore Int      @id @default(autoincrement())
-  idKuesioner      Int
-  idResponden      Int
-  idIndikator      Int
+  respondenScoreId Int      @id @default(autoincrement())
+  kuesionerId      Int
+  respondenId      Int
+  indikatorId      Int
   scoreRaw         Float
   scoreNormalized  Float?
   createdAt        DateTime @default(now())
 
-  kuesioner Kuesioner        @relation(fields: [idKuesioner], references: [idKuesioner])
-  responden RespondenProfile @relation(fields: [idResponden], references: [idResponden])
-  indikator Indikator        @relation(fields: [idIndikator], references: [idIndikator])
+  kuesioner Kuesioner        @relation(fields: [kuesionerId], references: [kuesionerId])
+  responden RespondenProfile @relation(fields: [respondenId], references: [respondenId])
+  indikator Indikator        @relation(fields: [indikatorId], references: [indikatorId])
 
-  @@index([idKuesioner])
-  @@index([idResponden])
-  @@index([idIndikator])
+  @@index([kuesionerId])
+  @@index([respondenId])
+  @@index([indikatorId])
 }
 
 model DistribusiKuesioner {
-  idDistribusi   Int       @id @default(autoincrement())
-  idKuesioner    Int
+  distribusiId   Int       @id @default(autoincrement())
+  kuesionerId    Int
   kodeAkses      String
   urlLink        String
   tanggalMulai   DateTime?
   tanggalSelesai DateTime?
   catatan        String?
 
-  kuesioner Kuesioner @relation(fields: [idKuesioner], references: [idKuesioner])
+  kuesioner Kuesioner @relation(fields: [kuesionerId], references: [kuesionerId])
 
-  @@index([idKuesioner])
+  @@index([kuesionerId])
 }
 
-model RevokedToken {
-  id        Int      @id @default(autoincrement())
-  token     String   @unique
-  expiredAt DateTime
-  createdAt DateTime @default(now())
+model RefreshToken {
+  refreshTokenId Int      @id @default(autoincrement())
+  token          String   @unique
+  userId         Int
+  user           User     @relation(fields: [userId], references: [userId])
+  expiredAt      DateTime
+  createdAt      DateTime @default(now())
 }
 
 model Kategori {
-  id        Int      @id @default(autoincrement())
-  nama      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  kategoriId Int      @id @default(autoincrement())
+  nama       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   kuesioner Kuesioner[] @relation("KategoriKuesioner")
 }

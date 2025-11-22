@@ -54,7 +54,7 @@ export const createKategoriService = async ({ nama }) => {
 
 export const updateKategoriService = async ( id ,{ nama }) => {
     const updated = await prisma.kategori.update({
-        where: { id : Number(id)},
+        where: { kategoriId : Number(id)},
         data: { nama }
     });
     return updated;
@@ -62,7 +62,7 @@ export const updateKategoriService = async ( id ,{ nama }) => {
 
 export const deleteKategoriService = async ( id ) => {
     const data = await prisma.kategori.delete({
-        where: {id: Number(id)}
+        where: {kategoriId: Number(id)}
     });
     return data;
 }

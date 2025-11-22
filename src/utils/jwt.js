@@ -1,54 +1,28 @@
 import jwt from "jsonwebtoken";
 
-const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
-const JWT_EXPIRES = "7d"; // bisa kamu ubah
+const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
-// Membuat token JWT
-export const createToken = (payload) => {
-  return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES,
-  });
+export const createAccessToken = (payload, expiresIn = "15m") => {
+  return jwt.sign(payload, ACCESS_SECRET, { expiresIn });
 };
 
-// Verifikasi token JWT
-export const verifyToken = (token) => {
+export const createRefreshToken = (payload, expiresIn = "30d") => {
+  return jwt.sign(payload, REFRESH_SECRET, { expiresIn });
+};
+
+export const verifyAccessToken = (token) => {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, ACCESS_SECRET);
   } catch (err) {
-    return null; // token invalid
+    return null;
   }
-};
+}
 
-// Middleware untuk proteksi endpoint Admin
-export const authAdmin = (req, res, next) => {
+export const verifyRefreshToken = (token) => {
   try {
-    const header = req.headers.authorization;
-
-    if (!header || !header.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Token tidak ditemukan",
-      });
-    }
-
-    const token = header.split(" ")[1];
-    const decoded = verifyToken(token);
-
-    if (!decoded) {
-      return res.status(401).json({
-        success: false,
-        message: "Token tidak valid",
-      });
-    }
-
-    // JWT valid → simpan data user ke req
-    req.user = decoded;
-    next();
-
+    return jwt.verify(token, REFRESH_SECRET);
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: "Autentikasi gagal"
-    });
+    return null;
   }
-};
+}

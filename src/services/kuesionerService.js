@@ -50,7 +50,7 @@ export const getKuesionerService = async ({
 
 export const getKuesionerByIdService = async (id) => {
     const data = await prisma.kuesioner.findUnique({
-        where: { idKuesioner: Number(id) },
+        where: { kuesionerId: Number(id) },
         include: {
             kategori: true,
             indikator: {
@@ -76,8 +76,8 @@ export const getKuesionerByIdService = async (id) => {
 export const createKuesionerService = async (data, userId) => {
     const newKuesioner = await prisma.kuesioner.create({
         data: {
-            idPembuat: userId,
-            idKategori: data.idKategori,
+            pembuatId: userId,
+            kategoriId: data.kategoriId,
             judul: data.judul,
             tujuan: data.tujuan,
             manfaat: data.manfaat,
@@ -90,7 +90,7 @@ export const createKuesionerService = async (data, userId) => {
 
 
 export const updateKuesionerService = async (id, updateData) => {
-    const allowedFields = ["judul", "tujuan", "manfaat", "status", "idKategori"];
+    const allowedFields = ["judul", "tujuan", "manfaat", "status", "kategoriId"];
 
 
     const dataToUpdate = {};
@@ -105,7 +105,7 @@ export const updateKuesionerService = async (id, updateData) => {
 
     //eksekusi PATCH
     const updated = await prisma.kuesioner.update({
-        where: { idKuesioner: Number(id) },
+        where: { kuesionerId: Number(id) },
         data: dataToUpdate
     });
 
@@ -114,7 +114,7 @@ export const updateKuesionerService = async (id, updateData) => {
 
 export const deleteKuesionerService = async (id) => {
     const data = await prisma.kuesioner.delete({
-        where: { idKuesioner: Number(id) }
+        where: { kuesionerId: Number(id) }
     });
     return data;
 }

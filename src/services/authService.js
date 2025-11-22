@@ -1,48 +1,48 @@
 import prisma from "../config/prisma.js";
 import bcrypt from "bcrypt";
-import { createToken } from "../utils/jwt.js";
+import { createAccessToken, createRefreshToken } from "../utils/jwt.js";
 import { logLogin, logLogout } from "./logService.js";
-
 
 export const loginService = async (email, password, remember = false) => {
 
-  // Cari user berdasarkan email
-  const user = await prisma.user.findUnique({
-    where: { email }
-  });
+  const user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user) {
-    return { success: false, message: "Email tidak ditemukan" };
-  }
+  if (!user) return { success: false, message: "Email tidak ditemukan" };
 
-  // Cek password
   const match = await bcrypt.compare(password, user.password);
-  if (!match) {
-    return { success: false, message: "Password salah" };
-  }
+  if (!match) return { success: false, message: "Password salah" };
 
-  // Durasi token (remember me)
-  const duration = remember ? "30d" : "1d";
+  const accessExp = remember ? "7d" : "1d";
+  const refreshExp = remember ? "30d" : "7d";
+  
 
-  // Generate token via utils
-  const token = createToken(
-    { idUser: user.idUser, email: user.email },
-    duration
+  const accessToken = createAccessToken(
+    { userId: user.userId, email: user.email },
+    accessExp
   );
 
-  // Simpan log login sukses
-  await logLogin(user.idUser);
+  const refreshToken = createRefreshToken(
+    { userId: user.userId },
+    refreshExp
+  );
 
-  // Response success
+  await prisma.refreshToken.create({
+    data: {
+      token: refreshToken,
+      userId: user.userId,
+      expiredAt: new Date(Date.now() + toMs(refreshExp))
+    }
+  });
+
   return {
     success: true,
     message: "Login berhasil",
     data: {
-      token,
-      remember,
-      expires_in: duration,
+      accessToken,
+      refreshToken,
+      expires_in: accessExp,
       user: {
-        idUser: user.idUser,
+        userId: user.userId,
         nama: user.nama,
         email: user.email
       }
@@ -50,19 +50,24 @@ export const loginService = async (email, password, remember = false) => {
   };
 };
 
-export const logoutService = async (user, token) => {
-  // Simpan token ke table revoked token
-  await prisma.revokedToken.create({
-    data: {
-      token,
-      expiredAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 hari
-    }
-  });
 
-  await logLogout(user.idUser);
+export const logoutService = async (user, refreshToken) => {
+
+  await prisma.refreshToken.deleteMany({
+    where: { token: refreshToken }
+  });
 
   return {
     success: true,
-    message: "Logout berhasil. Token sudah dinonaktifkan."
+    message: "Logout berhasil. Refresh token dicabut."
   };
 };
+
+// Utility converter "7d" / "30d" / "1d"
+function toMs(str) {
+  const num = parseInt(str);
+  if (str.endsWith("d")) return num * 24 * 60 * 60 * 1000;
+  if (str.endsWith("h")) return num * 60 * 60 * 1000;
+  if (str.endsWith("m")) return num * 60 * 1000;
+  return num;
+}

@@ -2,12 +2,12 @@ import { error } from "../utils/response.js";
 import prisma from "../config/prisma.js";
 
 export const validateCreateKuesioner = ( req, res, next, ) => {
-    const { judul, idKategori } = req.body;
+    const { judul, kategoriId } = req.body;
 
     let errors = {};
     
     if(!judul) errors.judul = "judul wajib diisi";
-    if(!idKategori) errors.idKategori = "Kategori wajib dipilih";
+    if(!kategoriId) errors.kategoriId = "Kategori wajib dipilih";
 
     if (Object.keys(errors).length > 0) {
         return error(res, {
@@ -26,7 +26,7 @@ export const validateUpdateKuesioner = (req, res, next) => {
     "tujuan",
     "manfaat",
     "status",
-    "idKategori"
+    "kategoriId"
   ];
 
   const errors = {};
@@ -59,9 +59,9 @@ export const validateUpdateKuesioner = (req, res, next) => {
     }
   }
 
-  if (req.body.idKategori !== undefined) {
-    if (isNaN(req.body.idKategori)) {
-      errors.idKategori = "Kategori harus berupa angka";
+  if (req.body.kategoriId !== undefined) {
+    if (isNaN(req.body.kategoriId)) {
+      errors.kategoriId = "Kategori harus berupa angka";
     }
   }
 
@@ -99,7 +99,7 @@ export const validateDeleteKuesioner = async (req, res, next) => {
 
   // 🔹 Cek apakah kuesioner ada
   const kuesioner = await prisma.kuesioner.findUnique({
-    where: { idKuesioner: Number(id) },
+    where: { kuesionerId: Number(id) },
   });
 
   if (!kuesioner) {

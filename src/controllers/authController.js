@@ -59,7 +59,7 @@ export const refresh = async (req, res) => {
     if (!decoded) {
       return error(res, { message: "Refresh token invalid", code: 401 });
     }
-
+    
     const newAccess = createAccessToken(
       { userId: decoded.userId },
       "1d"

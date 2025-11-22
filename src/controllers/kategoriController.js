@@ -1,4 +1,4 @@
-import { success, error } from "../utils/response.js";
+import { success } from "../utils/response.js";
 import {
     getKategoriService,
     createKategoriService,
@@ -6,7 +6,7 @@ import {
     deleteKategoriService,
 } from "../services/kategoriService.js";
 
-export const getKategori = async (req, res) => {
+export const getKategori = async (req, res, next) => {
     try {
         const {
             search = "",
@@ -20,84 +20,49 @@ export const getKategori = async (req, res) => {
             limit: Number(limit),
         });
 
-        return success(res, {
-            message: "Berhasil mengambil data kategori",
-            data: result,
-            code: 200,
-        });
+        return success(res, "Berhasil mengambil data kategori", result);
 
     } catch (err) {
-        return error(res, {
-            message: "Gagal mengambil data kategori",
-            errors: err.message,
-            code: 500,
-        });
+        next(err);
     }
 };
 
-export const createKategori = async (req, res) => {
+export const createKategori = async (req, res, next) => {
     try {
         const { nama } = req.body;
 
-        if (!nama) {
-            return error(res, {
-                message: "Nama kategori wajib diisi",
-                code: 400,
-            });
-        }
-
-        // ❗ Perbaikan: sebelumnya kamu memanggil createKategori(), padahal namanya createKategoriService()
         const result = await createKategoriService({ nama });
 
-        return success(res, {
-            message: "Berhasil membuat kategori",
-            data: result,
-            code: 201,
-        });
+        return success(res, "Berhasil membuat kategori", result, null, 201);
 
     } catch (err) {
-        return error(res, {
-            message: "Gagal membuat kategori",
-            errors: err.message,
-            code: 500,
-        });
+        next(err);
     }
 };
 
-export const updateKategori = async (req, res) => {
+export const updateKategori = async (req, res, next) => {
     try {
         const { id } = req.params;
         const { nama } = req.body;
 
         const result = await updateKategoriService(id, { nama });
 
-        return success(res, {
-            message: "kategori berhasil diperbarui",
-            data: result,
-        });
+        return success(res, "Kategori berhasil diperbarui", result);
+
     } catch (err) {
-        return error(res, {
-            message: "Gagal perbarui kategori",
-            errors: err.message,
-            code: 500,
-        });
+        next(err);
     }
 };
 
-export const deleteKategori = async ( req, res ) => {
+export const deleteKategori = async (req, res, next) => {
     try {
         const { id } = req.params;
 
         await deleteKategoriService(id);
 
-        return success(res , {
-            message: "Kategori berhasil dihapus",
-        })
+        return success(res, "Kategori berhasil dihapus", null);
+
     } catch (err) {
-        return error( res, {
-            message: "Gagal menghapus kategori",
-            errors: err.message,
-            code: 500,
-        });
+        next(err);
     }
 };

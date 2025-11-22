@@ -1,17 +1,51 @@
 import { Router } from "express";
+
 import { 
     getKategori, 
     createKategori,
     updateKategori,
     deleteKategori, 
 } from "../controllers/kategoriController.js";
-import { authMiddleware } from "../middleware/auth.js";
+
+import { authMiddleware } from "../middlewares/auth.js";
+
+import {
+    createKategoriValidator,
+    updateKategoriValidator,
+    deleteKategoriValidator
+} from "../middlewares/validators/kategoriValidator.js";
 
 const router = Router();
 
-router.get("/", authMiddleware, getKategori);
-router.post("/", authMiddleware, createKategori);
-router.put("/:id", authMiddleware, updateKategori);
-router.delete("/:id", authMiddleware, deleteKategori);
+// GET: Ambil semua kategori
+router.get(
+    "/", 
+    authMiddleware,
+    getKategori
+);
+
+// POST: Buat kategori baru
+router.post(
+    "/", 
+    authMiddleware,
+    createKategoriValidator,   // ✔ VALIDATOR DITAMBAHKAN
+    createKategori
+);
+
+// PUT: Update kategori
+router.put(
+    "/:id", 
+    authMiddleware,
+    updateKategoriValidator,   // ✔ VALIDATOR DITAMBAHKAN
+    updateKategori
+);
+
+// DELETE: Hapus kategori
+router.delete(
+    "/:id", 
+    authMiddleware,
+    deleteKategoriValidator,   // ✔ VALIDATOR DITAMBAHKAN
+    deleteKategori
+);
 
 export default router;

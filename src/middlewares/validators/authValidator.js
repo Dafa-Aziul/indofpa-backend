@@ -1,0 +1,30 @@
+import { body, validationResult } from "express-validator";
+import ApiError from "../../utils/apiError.js";
+
+export const validateLogin = [
+  // Rules
+  body("email")
+    .notEmpty().withMessage("Email wajib diisi")
+    .isEmail().withMessage("Format email tidak valid"),
+
+  body("password")
+    .notEmpty().withMessage("Password wajib diisi"),
+
+  // Handler
+  (req, res, next) => {
+    const errors = validationResult(req);
+
+    if (!errors.isEmpty()) {
+      // Format ulang error menjadi object per-field
+      const formattedErrors = {};
+      errors.array().forEach(err => {
+        formattedErrors[err.path] = err.msg;
+      });
+
+      // Lempar ke global error handler
+      throw new ApiError(422, "Validasi gagal", formattedErrors);
+    }
+
+    next();
+  }
+];

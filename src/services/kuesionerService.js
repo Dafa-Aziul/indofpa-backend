@@ -1,120 +1,159 @@
 import prisma from "../config/prisma.js";
+import ApiError from "../utils/apiError.js";
 
+/**
+ * GET ALL KUESIONER (dengan pagination & filter)
+ */
 export const getKuesionerService = async ({
-    search,
-    status,
-    kategori,
-    page,
-    limit,
+  search,
+  status,
+  kategori,
+  page,
+  limit,
 }) => {
-    const skip = (page - 1) * limit;
+  const skip = (page - 1) * limit;
 
-    const where = {
-        OR: search
-            ? [
-                {
-                    judul: {
-                        contains: search,
-                        mode: "insensitive",
-                    }
-                }
-            ]
-            : undefined,
-        status: status || undefined,
-        kategori: kategori ? Number(kategori) : undefined,
-    };
+  const where = {
+    OR: search
+      ? [
+          {
+            judul: {
+              contains: search,
+              mode: "insensitive",
+            },
+          },
+        ]
+      : undefined,
 
-    //Query utama 
-    const items = await prisma.kuesioner.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: {
-            createdAt: "desc"
-        }
-    });
+    status: status || undefined,
+    kategoriId: kategori ? Number(kategori) : undefined,
+  };
 
-    // Hitung total pagination
-    const total = await prisma.kuesioner.count({ where });
+  const items = await prisma.kuesioner.findMany({
+    where,
+    skip,
+    take: limit,
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
 
-    return {
-        items,
-        pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit),
-        }
-    };
+  const total = await prisma.kuesioner.count({ where });
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
 };
 
+/**
+ * GET DETAIL KUESIONER
+ */
 export const getKuesionerByIdService = async (id) => {
-    const data = await prisma.kuesioner.findUnique({
-        where: { kuesionerId: Number(id) },
+  await prisma.kuesioner.findUniqueOrThrow({
+    where: { kuesionerId: Number(id) },
+  });
+
+  const data = await prisma.kuesioner.findUnique({
+    where: { kuesionerId: Number(id) },
+    include: {
+      kategori: true,
+      indikator: {
         include: {
-            kategori: true,
-            indikator: {
-                include: {
-                    pertanyaan: {
-                        orderBy: {
-                            urutan: "asc",
-                        }
-                    },
-                },
-            },
-
-            distribusi: true,
-
-            _count: {
-                select: { responden: true }
-            },
+          pertanyaan: {
+            orderBy: { urutan: "asc" },
+          },
         },
-    });
-    return data;
-}
+      },
+      distribusi: true,
+      _count: {
+        select: { responden: true },
+      },
+    },
+  });
 
-export const createKuesionerService = async (data, userId) => {
-    const newKuesioner = await prisma.kuesioner.create({
-        data: {
-            pembuatId: userId,
-            kategoriId: data.kategoriId,
-            judul: data.judul,
-            tujuan: data.tujuan,
-            manfaat: data.manfaat,
-            status: data.status || "Draft",
-        },
-    });
-
-    return newKuesioner;
+  return data;
 };
 
+/**
+ * CREATE KUESIONER
+ */
+export const createKuesionerService = async (data, userId) => {
+  // Validasi kategori
+  await prisma.kategori.findUniqueOrThrow({
+    where: { kategoriId: Number(data.kategoriId) },
+  });
 
+  const newKuesioner = await prisma.kuesioner.create({
+    data: {
+      pembuatId: userId,
+      kategoriId: Number(data.kategoriId),
+      judul: data.judul,
+      tujuan: data.tujuan,
+      manfaat: data.manfaat,
+      status: data.status || "Draft",
+    },
+  });
+
+  return newKuesioner;
+};
+
+/**
+ * UPDATE KUESIONER
+ */
 export const updateKuesionerService = async (id, updateData) => {
-    const allowedFields = ["judul", "tujuan", "manfaat", "status", "kategoriId"];
+  await prisma.kuesioner.findUniqueOrThrow({
+    where: { kuesionerId: Number(id) },
+  });
 
+  const allowedFields = ["judul", "tujuan", "manfaat", "status", "kategoriId"];
+  const dataToUpdate = {};
 
-    const dataToUpdate = {};
-
-    //hanya memasukan field yang ada dalam allowedFields
-    for (const key of allowedFields) {
-        if (updateData[key] !== undefined) {
-            dataToUpdate[key] = updateData[key];
-        }
+  for (const key of allowedFields) {
+    if (updateData[key] !== undefined) {
+      dataToUpdate[key] = updateData[key];
     }
+  }
 
-
-    //eksekusi PATCH
-    const updated = await prisma.kuesioner.update({
-        where: { kuesionerId: Number(id) },
-        data: dataToUpdate
+  // Jika kategoriId ingin diupdate → check valid
+  if (updateData.kategoriId !== undefined) {
+    await prisma.kategori.findUniqueOrThrow({
+      where: { kategoriId: Number(updateData.kategoriId) },
     });
+  }
 
-    return updated;
-}
+  const updated = await prisma.kuesioner.update({
+    where: { kuesionerId: Number(id) },
+    data: dataToUpdate,
+  });
 
+  return updated;
+};
+
+/**
+ * DELETE KUESIONER
+ */
 export const deleteKuesionerService = async (id) => {
-    const data = await prisma.kuesioner.delete({
-        where: { kuesionerId: Number(id) }
-    });
-    return data;
-}
+  const kuesioner = await prisma.kuesioner.findUniqueOrThrow({
+    where: { kuesionerId: Number(id) },
+  });
+
+  if (kuesioner.status !== "Draft") {
+    throw new ApiError(
+      403,
+      "Kuesioner hanya bisa dihapus jika status Draft",
+      { status: kuesioner.status }
+    );
+  }
+
+  const data = await prisma.kuesioner.delete({
+    where: { kuesionerId: Number(id) },
+  });
+
+  return data;
+};

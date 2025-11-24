@@ -25,10 +25,10 @@ export const getKuesioner = async (req, res, next) => {
             limit: Number(limit),
         });
 
-        return success(res, {
-            message: "Berhasil mengambil data kuesioner",
-            data: result,
-        });
+        return success(res,
+            "Berhasil mengambil data kuesioner",
+            result,
+        );
 
     } catch (err) {
         next(err)
@@ -40,10 +40,10 @@ export const getKuesionerById = async (req, res, next) => {
         const { id } = req.params;
         const result = await getKuesionerByIdService(id);
 
-        return success(res, {
-            message: "Berhasil mengambil detail data kuesioner",
-            data: result,
-        })
+        return success(res, 
+            "Berhasil mengambil detail data kuesioner",
+            result,
+        )
     } catch (err) {
         next(err);
     }
@@ -52,15 +52,14 @@ export const getKuesionerById = async (req, res, next) => {
 export const createKuesioner = async (req, res, next) => {
     try {
         const userId = req.user.userId;
-        const body = req.body;
 
-        const result = await createKuesionerService(body, userId);
+        const result = await createKuesionerService(req.body, userId);
 
-        return success(res, {
-            message: "Kuesioner berhasil dibuat",
-            data: result,
-            code: 201,
-        })
+        return success(res, 
+             "Kuesioner berhasil dibuat",
+            result,
+             201,
+        )
 
     } catch (err) {
         next(err);
@@ -72,10 +71,10 @@ export const updateKuesioner = async (req, res, next) => {
         const { id } = req.params;
         const result = await updateKuesionerService(id, req.body);
 
-        return success(res, {
-            message: "Kuesioner berhasil diperbarui",
-            data: result
-        })
+        return success(res, 
+            "Kuesioner berhasil diperbarui",
+             result
+        )
     } catch (err) {
         next(err);
     }
@@ -86,9 +85,9 @@ export const deleteKuesioner = async (req, res, next) => {
         const { id } = req.params;
         await deleteKuesionerService(id);
 
-        return success(res, {
-            message: " kuesioner berhasil dihapus",
-        })
+        return success(res,
+            " kuesioner berhasil dihapus",
+        )
     } catch (err) {
         next(err);
     }

@@ -106,12 +106,12 @@ model Kuesioner {
 }
 
 model Indikator {
-  indikatorId   Int      @id @default(autoincrement())
-  kuesionerId   Int
-  namaIndikator String
-  kodeIndikator String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  indikatorId Int      @id @default(autoincrement())
+  kuesionerId Int
+  nama        String
+  kode        String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   kuesioner  Kuesioner        @relation(fields: [kuesionerId], references: [kuesionerId])
   pertanyaan Pertanyaan[]
@@ -124,7 +124,6 @@ model Pertanyaan {
   pertanyaanId   Int      @id @default(autoincrement())
   indikatorId    Int
   teksPertanyaan String
-  bobot          Int
   urutan         Int
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt

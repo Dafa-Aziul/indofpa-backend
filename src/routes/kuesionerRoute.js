@@ -15,10 +15,13 @@ import {
     deleteKuesionerValidator 
 } from "../middlewares/validators/kuesionerValidator.js";
 
+import indikatorRoute from "../routes/indikatorRoute.js";
+
 const router = Router();
 
 // GET (tidak butuh validator)
 router.get("/", authMiddleware, getKuesioner);
+
 router.get("/:id", authMiddleware, getKuesionerById);
 
 // POST

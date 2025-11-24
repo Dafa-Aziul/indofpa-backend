@@ -41,10 +41,8 @@ export const login = async (req, res, next) => {
     res.cookie("access_token", accessToken, cookieConfig(remember ? 7 * 86400000 : 86400000));
     res.cookie("refresh_token", refreshToken, cookieConfig(remember ? 30 * 86400000 : 7 * 86400000));
 
-    return success(res, {
-      message: "Login berhasil",
-      data: user,
-    });
+    return success(res, "Login berhasil", user);
+
 
   } catch (err) {
     next(err); // semua error masuk errorHandler
@@ -81,10 +79,8 @@ export const refresh = async (req, res, next) => {
 
 export const me = async (req, res, next) => {
   try {
-    return success(res, {
-      message: "Data user berhasil didapatkan",
-      data: req.user,
-    });
+    return success(res,  "Data user berhasil didapatkan",
+      req.user);
   } catch (err) {
     next(err);
   }
@@ -117,7 +113,7 @@ export const logout = async (req, res, next) => {
       sameSite: process.env.COOKIE_SAMESITE || (isDev ? "lax" : "none"),
     });
 
-    return success(res, { message: result.message });
+    return success(res, result.message );
 
   } catch (err) {
     next(err);

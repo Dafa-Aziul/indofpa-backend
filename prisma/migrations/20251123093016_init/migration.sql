@@ -43,8 +43,8 @@ CREATE TABLE `Kuesioner` (
 CREATE TABLE `Indikator` (
     `indikatorId` INTEGER NOT NULL AUTO_INCREMENT,
     `kuesionerId` INTEGER NOT NULL,
-    `namaIndikator` VARCHAR(191) NOT NULL,
-    `kodeIndikator` VARCHAR(191) NOT NULL,
+    `nama` VARCHAR(191) NOT NULL,
+    `kode` VARCHAR(191) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -57,7 +57,6 @@ CREATE TABLE `Pertanyaan` (
     `pertanyaanId` INTEGER NOT NULL AUTO_INCREMENT,
     `indikatorId` INTEGER NOT NULL,
     `teksPertanyaan` VARCHAR(191) NOT NULL,
-    `bobot` INTEGER NOT NULL,
     `urutan` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,

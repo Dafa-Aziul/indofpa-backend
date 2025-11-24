@@ -33,9 +33,6 @@ export const getKuesionerService = async ({
     where,
     skip,
     take: limit,
-    orderBy: {
-      createdAt: "desc",
-    },
   });
 
   const total = await prisma.kuesioner.count({ where });
@@ -55,21 +52,18 @@ export const getKuesionerService = async ({
  * GET DETAIL KUESIONER
  */
 export const getKuesionerByIdService = async (id) => {
+  const kuesionerId = Number(id);
+
+  // pastikan kuesioner ada
   await prisma.kuesioner.findUniqueOrThrow({
-    where: { kuesionerId: Number(id) },
+    where: { kuesionerId },
   });
 
-  const data = await prisma.kuesioner.findUnique({
-    where: { kuesionerId: Number(id) },
+  // ambil detail kuesioner (tanpa indikator & pertanyaan)
+  const kuesioner = await prisma.kuesioner.findUniqueOrThrow({
+    where: { kuesionerId },
     include: {
       kategori: true,
-      indikator: {
-        include: {
-          pertanyaan: {
-            orderBy: { urutan: "asc" },
-          },
-        },
-      },
       distribusi: true,
       _count: {
         select: { responden: true },
@@ -77,7 +71,27 @@ export const getKuesionerByIdService = async (id) => {
     },
   });
 
-  return data;
+  // ambil semua indikator milik kuesioner
+  const indikator = await prisma.indikator.findMany({
+    where: { kuesionerId },
+    orderBy: { indikatorId: "asc" },
+  });
+
+  // ambil semua pertanyaan milik indikator di kuesioner ini
+  const pertanyaan = await prisma.pertanyaan.findMany({
+    where: {
+      indikator: {
+        kuesionerId,
+      },
+    },
+    orderBy: { urutan: "asc" },
+  });
+
+  return {
+    kuesioner,
+    indikator,
+    pertanyaan,
+  };
 };
 
 /**
@@ -89,7 +103,7 @@ export const createKuesionerService = async (data, userId) => {
     where: { kategoriId: Number(data.kategoriId) },
   });
 
-  const newKuesioner = await prisma.kuesioner.create({
+  const result = await prisma.kuesioner.create({
     data: {
       pembuatId: userId,
       kategoriId: Number(data.kategoriId),
@@ -100,7 +114,7 @@ export const createKuesionerService = async (data, userId) => {
     },
   });
 
-  return newKuesioner;
+  return result;
 };
 
 /**
@@ -114,9 +128,9 @@ export const updateKuesionerService = async (id, updateData) => {
   const allowedFields = ["judul", "tujuan", "manfaat", "status", "kategoriId"];
   const dataToUpdate = {};
 
-  for (const key of allowedFields) {
-    if (updateData[key] !== undefined) {
-      dataToUpdate[key] = updateData[key];
+  for (const field of allowedFields) {
+    if (updateData[field] !== undefined) {
+      dataToUpdate[field] = updateData[field];
     }
   }
 
@@ -127,12 +141,12 @@ export const updateKuesionerService = async (id, updateData) => {
     });
   }
 
-  const updated = await prisma.kuesioner.update({
+  const result = await prisma.kuesioner.update({
     where: { kuesionerId: Number(id) },
     data: dataToUpdate,
   });
 
-  return updated;
+  return result;
 };
 
 /**
@@ -151,9 +165,9 @@ export const deleteKuesionerService = async (id) => {
     );
   }
 
-  const data = await prisma.kuesioner.delete({
+  const result = await prisma.kuesioner.delete({
     where: { kuesionerId: Number(id) },
   });
 
-  return data;
+  return result;
 };

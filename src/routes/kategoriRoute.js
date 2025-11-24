@@ -28,7 +28,7 @@ router.get(
 router.post(
     "/", 
     authMiddleware,
-    createKategoriValidator,   // ✔ VALIDATOR DITAMBAHKAN
+    createKategoriValidator,   
     createKategori
 );
 
@@ -36,7 +36,7 @@ router.post(
 router.put(
     "/:id", 
     authMiddleware,
-    updateKategoriValidator,   // ✔ VALIDATOR DITAMBAHKAN
+    updateKategoriValidator,   
     updateKategori
 );
 
@@ -44,7 +44,7 @@ router.put(
 router.delete(
     "/:id", 
     authMiddleware,
-    deleteKategoriValidator,   // ✔ VALIDATOR DITAMBAHKAN
+    deleteKategoriValidator,   
     deleteKategori
 );
 

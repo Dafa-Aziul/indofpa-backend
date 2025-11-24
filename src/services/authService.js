@@ -45,7 +45,7 @@ export const loginService = async (email, password, remember = false) => {
     data: {
       token: refreshToken,
       userId: user.userId,
-      expiredAt: new Date(Date.now() + toMs(refreshExp))
+      expiredAt: new Date(Date.now() + ms(refreshExp))
     }
   });
 
@@ -135,10 +135,11 @@ export const rotateRefreshTokenService = async (oldRefreshToken) => {
 };
 
 // Utility converter "7d" / "30d" / "1d"
-function toMs(str) {
+const ms = (str) => {
   const num = parseInt(str);
   if (str.endsWith("d")) return num * 24 * 60 * 60 * 1000;
   if (str.endsWith("h")) return num * 60 * 60 * 1000;
   if (str.endsWith("m")) return num * 60 * 1000;
+  if (str.endsWith("s")) return num * 1000;
   return num;
-}
+};

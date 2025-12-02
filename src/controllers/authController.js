@@ -79,7 +79,7 @@ export const refresh = async (req, res, next) => {
 
 export const me = async (req, res, next) => {
   try {
-    return success(res,  "Data user berhasil didapatkan",
+    return success(res, "Data user berhasil didapatkan",
       req.user);
   } catch (err) {
     next(err);
@@ -113,7 +113,7 @@ export const logout = async (req, res, next) => {
       sameSite: process.env.COOKIE_SAMESITE || (isDev ? "lax" : "none"),
     });
 
-    return success(res, result.message );
+    return success(res, result.message);
 
   } catch (err) {
     next(err);

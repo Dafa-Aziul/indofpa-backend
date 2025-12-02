@@ -1,51 +1,70 @@
 import { Router } from "express";
 import {
-    getKuesioner,
-    createKuesioner,
-    updateKuesioner,
-    deleteKuesioner,
-    getKuesionerById
+  getKuesioner,
+  createKuesioner,
+  updateKuesioner,
+  deleteKuesioner,
+  getKuesionerById,
+  arsipKuesioner
 } from "../controllers/kuesionerController.js";
 
 import { authMiddleware } from "../middlewares/auth.js";
 
-import { 
-    createKuesionerValidator, 
-    updateKuesionerValidator, 
-    deleteKuesionerValidator 
+import {
+  createKuesionerValidator,
+  updateKuesionerValidator,
+  deleteKuesionerValidator,
+  getKuesionerByIdValidator,
+  arsipKuesionerValidator
 } from "../middlewares/validators/kuesionerValidator.js";
 
-import indikatorRoute from "../routes/indikatorRoute.js";
+import indikatorRoute from "./indikatorRoute.js";
+import distribusiRoute from "./distribusiRoute.js"
 
 const router = Router();
 
-// GET (tidak butuh validator)
+// LIST
 router.get("/", authMiddleware, getKuesioner);
 
-router.get("/:id", authMiddleware, getKuesionerById);
-
-// POST
-router.post(
-  "/", 
+// DETAIL
+router.get("/:id",
   authMiddleware,
-  createKuesionerValidator,   
+  getKuesionerByIdValidator,
+  getKuesionerById
+);
+
+// CREATE
+router.post("/",
+  authMiddleware,
+  createKuesionerValidator,
   createKuesioner
 );
 
-// PATCH
-router.patch(
-  "/:id",
+// UPDATE
+router.patch("/:id",
   authMiddleware,
-  updateKuesionerValidator,  
+  updateKuesionerValidator,
   updateKuesioner
 );
 
 // DELETE
-router.delete(
-  "/:id",
+router.delete("/:id",
   authMiddleware,
-  deleteKuesionerValidator,  
+  deleteKuesionerValidator,
   deleteKuesioner
 );
+
+router.patch(
+  "/:id/arsip",
+  authMiddleware,
+  arsipKuesionerValidator,
+  arsipKuesioner
+);
+
+
+// NESTED: INDIKATOR DALAM KUESIONER
+router.use("/:kuesionerId/indikator", indikatorRoute);
+router.use("/:kuesionerId/distribusi", distribusiRoute);
+
 
 export default router;

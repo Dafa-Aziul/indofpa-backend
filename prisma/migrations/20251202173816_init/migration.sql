@@ -31,6 +31,7 @@ CREATE TABLE `Kuesioner` (
     `tujuan` VARCHAR(191) NULL,
     `manfaat` VARCHAR(191) NULL,
     `estimasiMenit` INTEGER NULL,
+    `targetResponden` INTEGER NULL,
     `status` ENUM('Draft', 'Publish', 'Arsip') NOT NULL DEFAULT 'Draft',
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
@@ -40,15 +41,31 @@ CREATE TABLE `Kuesioner` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- CreateTable
+CREATE TABLE `Variabel` (
+    `variabelId` INTEGER NOT NULL AUTO_INCREMENT,
+    `kuesionerId` INTEGER NOT NULL,
+    `kode` VARCHAR(191) NOT NULL,
+    `nama` VARCHAR(191) NOT NULL,
+    `deskripsi` VARCHAR(191) NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
+
+    INDEX `Variabel_kuesionerId_idx`(`kuesionerId`),
+    UNIQUE INDEX `Variabel_kuesionerId_kode_key`(`kuesionerId`, `kode`),
+    PRIMARY KEY (`variabelId`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
 CREATE TABLE `Indikator` (
     `indikatorId` INTEGER NOT NULL AUTO_INCREMENT,
-    `kuesionerId` INTEGER NOT NULL,
+    `variabelId` INTEGER NOT NULL,
     `nama` VARCHAR(191) NOT NULL,
     `kode` VARCHAR(191) NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    INDEX `Indikator_kuesionerId_idx`(`kuesionerId`),
+    INDEX `Indikator_variabelId_idx`(`variabelId`),
+    UNIQUE INDEX `Indikator_variabelId_kode_key`(`variabelId`, `kode`),
     PRIMARY KEY (`indikatorId`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -58,6 +75,7 @@ CREATE TABLE `Pertanyaan` (
     `indikatorId` INTEGER NOT NULL,
     `teksPertanyaan` VARCHAR(191) NOT NULL,
     `urutan` INTEGER NOT NULL,
+    `labelSkala` JSON NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
@@ -160,7 +178,10 @@ ALTER TABLE `Kuesioner` ADD CONSTRAINT `Kuesioner_pembuatId_fkey` FOREIGN KEY (`
 ALTER TABLE `Kuesioner` ADD CONSTRAINT `Kuesioner_kategoriId_fkey` FOREIGN KEY (`kategoriId`) REFERENCES `Kategori`(`kategoriId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE `Indikator` ADD CONSTRAINT `Indikator_kuesionerId_fkey` FOREIGN KEY (`kuesionerId`) REFERENCES `Kuesioner`(`kuesionerId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `Variabel` ADD CONSTRAINT `Variabel_kuesionerId_fkey` FOREIGN KEY (`kuesionerId`) REFERENCES `Kuesioner`(`kuesionerId`) ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Indikator` ADD CONSTRAINT `Indikator_variabelId_fkey` FOREIGN KEY (`variabelId`) REFERENCES `Variabel`(`variabelId`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Pertanyaan` ADD CONSTRAINT `Pertanyaan_indikatorId_fkey` FOREIGN KEY (`indikatorId`) REFERENCES `Indikator`(`indikatorId`) ON DELETE RESTRICT ON UPDATE CASCADE;

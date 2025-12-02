@@ -1,83 +1,76 @@
 import { success } from "../utils/response.js";
+
 import {
-    createIndikatorService,
-    deleteIndikatorService,
-    getIndikatorByKuesionerService,
-    updateIndikatorService
+  getIndikatorService,
+  createIndikatorService,
+  updateIndikatorService,
+  deleteIndikatorService
 } from "../services/indikatorService.js";
 
-// GET semua indikator berdasarkan kuesioner
+
+/**
+ * GET LIST INDIKATOR (per Kuesioner)
+ */
 export const getIndikator = async (req, res, next) => {
-    try {
-        const { page = 1, limit = 10 } = req.query;
-        const { kuesionerId } = req.params;
+  try {
+    const { kuesionerId } = req.params;
 
-        const result = await getIndikatorByKuesionerService({
-            page: Number(page),
-            limit: Number(limit),
-            kuesionerId: Number(kuesionerId)
-        });
+    const result = await getIndikatorService(kuesionerId);
 
-        return success(res,
-            "Berhasil mengambil data indikator",
-            result
-        );
+    return success(res, "Berhasil mengambil daftar indikator", result);
 
-    } catch (err) {
-        next(err);
-    }
+  } catch (err) {
+    next(err);
+  }
 };
 
 
-// CREATE indikator
+/**
+ * CREATE INDIKATOR
+ */
 export const createIndikator = async (req, res, next) => {
-    try {
-        const { kuesionerId } = req.params;
+  try {
+    const { kuesionerId } = req.params;
 
-        const result = await createIndikatorService(req.body, kuesionerId);
+    const result = await createIndikatorService(kuesionerId, req.body);
 
-        return success(res,
-            "Indikator berhasil dibuat",
-            result,
-            201
-        );
+    return success(res, "Indikator berhasil dibuat", result, null, 201);
 
-    } catch (err) {
-        next(err);
-    }
+  } catch (err) {
+    next(err);
+  }
 };
 
 
-// UPDATE indikator (per indikator)
+/**
+ * UPDATE INDIKATOR
+ */
 export const updateIndikator = async (req, res, next) => {
-    try {
-        const { id, kuesionerId } = req.params;
-        // Jalankan update
-        const result = await updateIndikatorService(id, req.body);
+  try {
+    const { id } = req.params;
 
-        return success(res,
-            "Indikator berhasil diperbarui",
-            result
-        );
+    const result = await updateIndikatorService(id, req.body);
 
-    } catch (err) {
-        next(err);
-    }
+    return success(res, "Indikator berhasil diperbarui", result);
+
+  } catch (err) {
+    next(err);
+  }
 };
 
 
-// DELETE indikator (per indikator)
+/**
+ * DELETE INDIKATOR
+ */
 export const deleteIndikator = async (req, res, next) => {
-    try {
-        const { id } = req.params;
+  try {
+    const { id } = req.params;
 
-        await deleteIndikatorService(id);
+    await deleteIndikatorService(id);
 
-        return success(res,
-            "Indikator berhasil dihapus"
-        );
+    return success(res, "Indikator berhasil dihapus");
 
-    } catch (err) {
-        next(err);
-    }
+  } catch (err) {
+    next(err);
+  }
 };

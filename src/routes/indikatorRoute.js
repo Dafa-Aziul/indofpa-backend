@@ -1,49 +1,59 @@
 import { Router } from "express";
 
-import { 
-    createIndikator,
-    deleteIndikator,
-    getIndikator,
-    updateIndikator, 
+import {
+  getIndikator,
+  createIndikator,
+  updateIndikator,
+  deleteIndikator
 } from "../controllers/indikatorController.js";
 
 import { authMiddleware } from "../middlewares/auth.js";
 
-import { 
-    createIndikatorValidator, 
-    deleteIndikatorValidator, 
-    updateIndikatorValidator 
+import {
+  getIndikatorValidator,
+  createIndikatorValidator,
+  updateIndikatorValidator,
+  deleteIndikatorValidator
 } from "../middlewares/validators/indikatorValidator.js";
 
-const router = Router({ mergeParams: true });
+import pertanyaanRoute from "./pertanyaanRoute.js";
 
-// GET semua indikator pada 1 kuesioner
+const router = Router({mergeParams: true});
+
+
+// LIST indikator dalam kuesioner
 router.get(
-    "/:kuesionerId/",
-    authMiddleware,
-    getIndikator
+  "/",
+  authMiddleware,
+  getIndikatorValidator,
+  getIndikator
 );
 
-// CREATE indikator
+// CREATE indikator dalam kuesioner
 router.post(
-    "/kuesioner/:kuesionerId",
-    authMiddleware,
-    createIndikatorValidator,
-    createIndikator
+  "/",
+  authMiddleware,
+  createIndikatorValidator,
+  createIndikator
 );
 
-// UPDATE indikator
+// UPDATE indicator
 router.patch(
-    "/:id",
-    authMiddleware,
-    updateIndikatorValidator,
-    updateIndikator
+  "/:id",
+  authMiddleware,
+  updateIndikatorValidator,
+  updateIndikator
 );
 
+// DELETE indicator
 router.delete(
-    "/:id", 
-    authMiddleware, 
-    deleteIndikatorValidator, 
-    deleteIndikator);
+  "/:id",
+  authMiddleware,
+  deleteIndikatorValidator,
+  deleteIndikator
+);
+
+// NESTED: pertanyaan dalam indikator
+router.use("/:indikatorId/pertanyaan", pertanyaanRoute);
 
 export default router;

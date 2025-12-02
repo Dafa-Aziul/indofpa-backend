@@ -22,20 +22,28 @@ export const createKuesionerValidator = [
     .optional()
     .isString().withMessage("Manfaat harus berupa teks"),
 
-  body("status")
+  body("estimasiMenit")
     .optional()
-    .isIn(["Draft", "Publish", "Arsip"])
-    .withMessage("Status tidak valid"),
+    .isInt({ min: 1 }).withMessage("Estimasi menit minimal 1")
+    .toInt(),
+
+  body("targetResponden")
+    .optional()
+    .isInt({ min: 1 }).withMessage("Target responden harus angka minimal 1")
+    .toInt(),
+
+  // status tidak divalidasi → biarkan service set default Draft
 
   validate,
 ];
 
+
 /* ============================================
-   UPDATE KUESIONER VALIDATION
+   UPDATE KUESIONER VALIDATION (PATCH)
    ============================================ */
 export const updateKuesionerValidator = [
   body().custom((value) => {
-    if (typeof value !== "object" || Array.isArray(value)) {
+    if (!value || typeof value !== "object") {
       throw new Error("Body harus berupa object JSON");
     }
     if (Object.keys(value).length === 0) {
@@ -49,18 +57,33 @@ export const updateKuesionerValidator = [
     .trim()
     .notEmpty().withMessage("Judul tidak boleh kosong"),
 
-  body("status")
-    .optional()
-    .isIn(["Draft", "Publish", "Arsip"])
-    .withMessage("Status tidak valid"),
-
   body("kategoriId")
     .optional()
     .isInt().withMessage("Kategori harus berupa angka")
     .toInt(),
 
+  body("tujuan")
+    .optional()
+    .isString().withMessage("Tujuan harus berupa teks"),
+
+  body("manfaat")
+    .optional()
+    .isString().withMessage("Manfaat harus berupa teks"),
+
+  body("estimasiMenit")
+    .optional()
+    .isInt({ min: 1 }).withMessage("Estimasi menit minimal 1")
+    .toInt(),
+
+  body("targetResponden")
+    .optional()
+    .isInt({ min: 1 }).withMessage("Target responden harus angka minimal 1")
+    .toInt(),
+    
   validate,
 ];
+
+
 
 /* ============================================
    DELETE KUESIONER VALIDATION
@@ -71,5 +94,21 @@ export const deleteKuesionerValidator = [
     .isInt().withMessage("ID harus berupa angka")
     .toInt(),
 
+  validate,
+];
+
+export const getKuesionerByIdValidator = [
+  param("id")
+    .notEmpty().withMessage("ID wajib diberikan")
+    .isInt().withMessage("ID harus berupa angka")
+    .toInt(),
+
+  validate,
+];
+
+export const arsipKuesionerValidator = [
+  param("id")
+    .isInt().withMessage("ID tidak valid")
+    .toInt(),
   validate,
 ];

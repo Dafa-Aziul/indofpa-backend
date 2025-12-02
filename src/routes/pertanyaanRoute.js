@@ -1,38 +1,53 @@
 import { Router } from "express";
-import { createPertanyaan, updatePertanyaan, deletePertanyaan, getPertanyaanByKuesioner } from "../controllers/pertanyaanController.js";
+
+import {
+  getPertanyaan,
+  createPertanyaan,
+  updatePertanyaan,
+  deletePertanyaan
+} from "../controllers/pertanyaanController.js";
 
 import { authMiddleware } from "../middlewares/auth.js";
 
-import { 
-    createPertanyaanValidator, 
-    updatePertanyaanValidator , 
-    deletePertanyaanValidator
+import {
+  getPertanyaanValidator,
+  createPertanyaanValidator,
+  updatePertanyaanValidator,
+  deletePertanyaanValidator
 } from "../middlewares/validators/pertanyaanValidator.js";
 
 const router = Router({mergeParams: true});
 
-router.get("/kuesioner/:kuesionerId", authMiddleware, getPertanyaanByKuesioner)
+// LIST
+router.get(
+  "/",
+  authMiddleware,
+  getPertanyaanValidator,
+  getPertanyaan
+);
 
+// CREATE
 router.post(
-    "/:kuesionerId",
-    authMiddleware, 
-    createPertanyaanValidator,
-    createPertanyaan
+  "/",
+  authMiddleware,
+  createPertanyaanValidator,
+  createPertanyaan
 );
 
-router.put(
-    "/:id",
-    authMiddleware,
-    updatePertanyaanValidator,
-    updatePertanyaan,
+// UPDATE pertanyaan
+router.patch(
+  "/:id",
+  authMiddleware,
+  updatePertanyaanValidator,
+  updatePertanyaan
 );
 
+// DELETE pertanyaan
 router.delete(
-    "/:id",
-    authMiddleware,
-    deletePertanyaanValidator,
-    deletePertanyaan
+  "/:id",
+  authMiddleware,
+  deletePertanyaanValidator,
+  deletePertanyaan
 );
-
 
 export default router;

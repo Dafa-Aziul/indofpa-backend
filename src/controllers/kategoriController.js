@@ -20,7 +20,7 @@ export const getKategori = async (req, res, next) => {
             limit: Number(limit),
         });
 
-        return success(res, "Berhasil mengambil data kategori", result);
+        return success(res, "Berhasil mengambil data kategori", result.items, result.meta);
 
     } catch (err) {
         next(err);

@@ -84,20 +84,21 @@ model LogAktivitas {
 }
 
 model Kuesioner {
-  kuesionerId   Int             @id @default(autoincrement())
-  pembuatId     Int
-  kategoriId    Int
-  judul         String
-  tujuan        String?
-  manfaat       String?
-  estimasiMenit Int?
-  status        StatusKuesioner @default(Draft)
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
+  kuesionerId     Int             @id @default(autoincrement())
+  pembuatId       Int
+  kategoriId      Int
+  judul           String
+  tujuan          String?
+  manfaat         String?
+  estimasiMenit   Int?
+  targetResponden Int?
+  status          StatusKuesioner @default(Draft)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   pembuat    User                  @relation("PembuatKuesioner", fields: [pembuatId], references: [userId])
   kategori   Kategori              @relation("KategoriKuesioner", fields: [kategoriId], references: [kategoriId])
-  indikator  Indikator[]
+  variabel   Variabel[]           
   responden  RespondenProfile[]
   score      RespondenScore[]
   distribusi DistribusiKuesioner[]
@@ -105,19 +106,38 @@ model Kuesioner {
   @@index([pembuatId])
 }
 
+
+model Variabel {
+  variabelId Int        @id @default(autoincrement())
+  kuesionerId Int
+  kode       String
+  nama       String
+  deskripsi  String?
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  kuesioner  Kuesioner  @relation(fields: [kuesionerId], references: [kuesionerId])
+  indikator  Indikator[]
+
+  @@index([kuesionerId])
+  @@unique([kuesionerId, kode])
+}
+
+
 model Indikator {
   indikatorId Int      @id @default(autoincrement())
-  kuesionerId Int
+  variabelId  Int
   nama        String
   kode        String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  kuesioner  Kuesioner        @relation(fields: [kuesionerId], references: [kuesionerId])
-  pertanyaan Pertanyaan[]
-  score      RespondenScore[]
+  variabel    Variabel  @relation(fields: [variabelId], references: [variabelId])
+  pertanyaan  Pertanyaan[]
+  score       RespondenScore[]
 
-  @@index([kuesionerId])
+  @@index([variabelId])
+  @@unique([variabelId, kode])
 }
 
 model Pertanyaan {
@@ -125,6 +145,7 @@ model Pertanyaan {
   indikatorId    Int
   teksPertanyaan String
   urutan         Int
+  labelSkala     Json? 
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -144,7 +165,6 @@ model RespondenProfile {
   tingkatPendidikan TingkatPendidikan
   agama             Agama
   pekerjaan         String?
-
   waktuMulai   DateTime?
   waktuSelesai DateTime?
   createdAt    DateTime  @default(now())

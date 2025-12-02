@@ -1,68 +1,120 @@
-import prisma from "../config/prisma.js"
+import prisma from "../config/prisma.js";
+import ApiError from "../utils/apiError.js";
 
-export const getKategoriService = async ({
-    search,
-    page,
-    limit,
-}) => {
-    const skip = (page - 1) * limit;
 
-    const where = {
-        OR: search
-            ? [
-                {
-                    nama: {
-                        contains: search,
-                        mode: "insensitive"
-                    }
-                }
-            ]
-            : undefined,
-    };
-    
-    //Query utama
-    const items = await prisma.kategori.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: {
-            createdAt: "desc"
-        }
+// ======================================================
+// GET KATEGORI (list + search + pagination)
+// ======================================================
+export const getKategoriService = async ({ search, page, limit }) => {
+  const skip = (page - 1) * limit;
+
+  const where = search
+    ? {
+      nama: {
+        contains: search,  // ❗ tanpa mode
+      },
+    }
+    : undefined;
+
+  const [items, total] = await Promise.all([
+    prisma.kategori.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+    }),
+    prisma.kategori.count({ where }),
+  ]);
+
+  return {
+    items,
+    meta: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+      search: search || null,
+    },
+  };
+};
+
+
+
+// ======================================================
+// CREATE KATEGORI
+// ======================================================
+export const createKategoriService = async ({ nama }) => {
+  const exist = await prisma.kategori.findFirst({
+    where: { nama: nama.trim() },
+  });
+
+  if (exist) {
+    throw new ApiError(400, "Nama kategori sudah digunakan");
+  }
+
+  return prisma.kategori.create({
+    data: { nama },
+  });
+};
+
+
+// ======================================================
+// UPDATE KATEGORI
+// ======================================================
+export const updateKategoriService = async (id, { nama }) => {
+  const kategoriId = Number(id);
+
+  // cek kategori ada
+  await prisma.kategori.findUniqueOrThrow({
+    where: { kategoriId },
+  });
+
+  // cek nama duplikat
+  const exist = await prisma.kategori.findFirst({
+    where: {
+      nama: nama.trim(),
+      kategoriId: { not: kategoriId },
+    },
+  });
+
+  if (exist) {
+    throw new ApiError(400, "Nama kategori sudah digunakan kategori lain");
+  }
+
+  return prisma.kategori.update({
+    where: { kategoriId },
+    data: { nama },
+  });
+};
+
+
+// ======================================================
+// DELETE KATEGORI (WAJIB TRANSACTION)
+// ======================================================
+export const deleteKategoriService = async (id) => {
+  return prisma.$transaction(async (tx) => {
+    const kategoriId = Number(id);
+
+    // cek kategori ada
+    await tx.kategori.findUniqueOrThrow({
+      where: { kategoriId },
     });
 
-    const total = await prisma.kategori.count({where});
+    // cek relasi (dipakai kuesioner?)
+    const used = await tx.kuesioner.findFirst({
+      where: { kategoriId },
+    });
 
-    return {
-        items, 
-        pagination: {
-            page,
-            limit, 
-            total, 
-            pages: Math.ceil( total/limit),
-        }
+    if (used) {
+      throw new ApiError(
+        400,
+        "Kategori tidak bisa dihapus karena masih digunakan kuesioner."
+      );
     }
 
+    // hapus kategori
+    return tx.kategori.delete({
+      where: { kategoriId },
+    });
+  });
 };
-
-export const createKategoriService = async ({ nama }) => {
-    const newKategori = await prisma.kategori.create({
-        data: { nama }
-    });
-    
-    return newKategori;
-};
-
-export const updateKategoriService = async ( id ,{ nama }) => {
-    const updated = await prisma.kategori.update({
-        where: { kategoriId : Number(id)},
-        data: { nama }
-    });
-    return updated;
-}
-
-export const deleteKategoriService = async ( id ) => {
-    const data = await prisma.kategori.delete({
-        where: {kategoriId: Number(id)}
-    });
-    return data;
-}

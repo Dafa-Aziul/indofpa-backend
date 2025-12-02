@@ -1,23 +1,45 @@
 import { Router } from "express";
+
+// Import semua route
 import authRoute from "./authRoute.js";
-import kuesionerRoute from "./kuesionerRoute.js"
-import kategoriRoute from "./kategoriRoute.js"
-import  indikatorRoute from "./indikatorRoute.js"
-import pertanyaanRoute from "./pertanyaanRoute.js"
+import kategoriRoute from "./kategoriRoute.js";
+import kuesionerRoute from "./kuesionerRoute.js";
+import indikatorRoute from "./indikatorRoute.js";
+import pertanyaanRoute from "./pertanyaanRoute.js";
+import publicRoute from "./publicRoute.js";
+import monitoringRoute from "./monitoringRoute.js"
+import distribusiRoute from "./distribusiRoute.js"
 
 const router = Router();
 
-router.get("/", (req, res) => {
-  res.json({
-    status: "success",
-    message: "IndoFPA Backend API is running",
-  });
-});
+// ===============================
+// ROUTE GROUPING
+// ===============================
 
+// Auth
 router.use("/auth", authRoute);
-router.use("/kuesioner", kuesionerRoute);
+
+// Kategori
 router.use("/kategori", kategoriRoute);
+
+// Kuesioner
+router.use("/kuesioner", kuesionerRoute);
+
+// Indikator
 router.use("/indikator", indikatorRoute);
+
+// Pertanyaan
 router.use("/pertanyaan", pertanyaanRoute);
+
+//distribusi 
+router.use("/distribusi", distribusiRoute);
+// public
+router.use("/public", publicRoute);
+
+// monitoring
+router.use("/monitoring", monitoringRoute);
+
+
+
 
 export default router;

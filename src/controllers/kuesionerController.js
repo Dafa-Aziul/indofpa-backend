@@ -9,9 +9,7 @@ import {
 } from "../services/kuesionerService.js";
 
 
-/**
- * GET LIST KUESIONER
- */
+//get all kuesioner
 export const getKuesioner = async (req, res, next) => {
   try {
     const {
@@ -38,17 +36,10 @@ export const getKuesioner = async (req, res, next) => {
 };
 
 
-/**
- * GET DETAIL KUESIONER
- */
+// get detail kuesioner
 export const getKuesionerById = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const {
-      search = "",
-      page = 1,
-      limit = 10,
-    } = req.query;
 
     const result = await getKuesionerByIdService(id);
 
@@ -60,9 +51,7 @@ export const getKuesionerById = async (req, res, next) => {
 };
 
 
-/**
- * CREATE KUESIONER
- */
+// create kuesioner
 export const createKuesioner = async (req, res, next) => {
   try {
     const userId = req.user.userId;
@@ -77,9 +66,7 @@ export const createKuesioner = async (req, res, next) => {
 };
 
 
-/**
- * UPDATE KUESIONER
- */
+// update kuesioner
 export const updateKuesioner = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -94,9 +81,7 @@ export const updateKuesioner = async (req, res, next) => {
 };
 
 
-/**
- * DELETE KUESIONER
- */
+// delete kuesioner
 export const deleteKuesioner = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -110,19 +95,16 @@ export const deleteKuesioner = async (req, res, next) => {
   }
 };
 
+// arsip kuesioner
 export const arsipKuesioner = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const result = await arsipKuesionerService(id);
 
-    return success(res,
-      "Kuesioner berhasil diarsipkan",
-      result
-    );
+    return success(res, "Kuesioner berhasil diarsipkan", result);
 
   } catch (err) {
     next(err);
   }
 };
-

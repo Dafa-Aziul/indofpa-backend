@@ -1,9 +1,8 @@
 import prisma from "../config/prisma.js";
 import ApiError from "../utils/apiError.js";
 
-/* ======================================================
-   GET ALL KUESIONER (pagination, search, filter)
-====================================================== */
+
+// get all kuesioner (pagination, search, filter)
 export const getKuesionerService = async ({
   search,
   status,
@@ -16,12 +15,8 @@ export const getKuesionerService = async ({
 
   const where = {
     AND: [
-      search
-        ? { judul: { contains: search, } }
-        : undefined,
-
+      search ? { judul: { contains: search} } : undefined,
       status ? { status } : undefined,
-
       kategori ? { kategoriId: Number(kategori) } : undefined,
     ].filter(Boolean),
   };
@@ -35,7 +30,10 @@ export const getKuesionerService = async ({
       kategori: true,
       pembuat: { select: { userId: true, nama: true, email: true } },
       _count: {
-        select: { responden: true, indikator: true },
+        select: {
+          responden: true,
+          variabel: true,
+        },
       },
     },
   });
@@ -55,46 +53,76 @@ export const getKuesionerService = async ({
 
 
 
-/* ======================================================
-   GET DETAIL KUESIONER (indikator + pertanyaan)
-====================================================== */
+
+// get detail kuesioner (variabel + indikator + pertanyaan)
 export const getKuesionerByIdService = async (id) => {
   const kuesionerId = Number(id);
 
-  await prisma.kuesioner.findUniqueOrThrow({
-    where: { kuesionerId },
-  });
-
-  const kuesioner = await prisma.kuesioner.findUnique({
+  // Ambil kuesioner
+  const kuesioner = await prisma.kuesioner.findUniqueOrThrow({
     where: { kuesionerId },
     include: {
       kategori: true,
       pembuat: { select: { userId: true, nama: true, email: true } },
       distribusi: true,
-      _count: { select: { responden: true } },
-    },
+      _count: { select: { responden: true } }
+    }
   });
 
-  const indikator = await prisma.indikator.findMany({
+  // Ambil variabel
+  const variabel = await prisma.variabel.findMany({
     where: { kuesionerId },
-    orderBy: { indikatorId: "asc" },
+    orderBy: { variabelId: "asc" }
   });
 
+  if (variabel.length === 0) {
+    return {
+      kuesioner,
+      variabel: [],
+      indikator: [],
+      pertanyaan: []
+    };
+  }
+
+  const variabelIds = variabel.map(v => v.variabelId);
+
+  // Ambil indikator
+  const indikator = await prisma.indikator.findMany({
+    where: { variabelId: { in: variabelIds } },
+    orderBy: { indikatorId: "asc" }
+  });
+
+  if (indikator.length === 0) {
+    return {
+      kuesioner,
+      variabel,
+      indikator: [],
+      pertanyaan: []
+    };
+  }
+
+  const indikatorIds = indikator.map(i => i.indikatorId);
+
+  // Ambil seluruh pertanyaan (1 list per kuesioner)
   const pertanyaan = await prisma.pertanyaan.findMany({
-    where: {
-      indikator: { kuesionerId },
-    },
-    orderBy: { urutan: "asc" },
+    where: { indikatorId: { in: indikatorIds } },
+    orderBy: { urutan: "asc" }  
   });
 
-  return { kuesioner, indikator, pertanyaan };
+  return {
+    kuesioner,
+    variabel,
+    indikator,
+    pertanyaan     
+  };
 };
 
 
 
-/* ======================================================
-   CREATE KUESIONER
-====================================================== */
+
+
+
+// create kuesioner
 export const createKuesionerService = async (data, userId) => {
   const kategoriId = Number(data.kategoriId);
 
@@ -118,9 +146,7 @@ export const createKuesionerService = async (data, userId) => {
 
 
 
-/* ======================================================
-   UPDATE KUESIONER
-====================================================== */
+// update kuesioner (PATCH)
 export const updateKuesionerService = async (id, updateData) => {
   const kuesionerId = Number(id);
 
@@ -169,13 +195,12 @@ export const updateKuesionerService = async (id, updateData) => {
 
 
 
-/* ======================================================
-   DELETE KUESIONER (WITH TRANSACTION)
-====================================================== */
+//delete kuesioner
 export const deleteKuesionerService = async (id) => {
   const kuesionerId = Number(id);
 
   return prisma.$transaction(async (tx) => {
+
     const kues = await tx.kuesioner.findUniqueOrThrow({
       where: { kuesionerId },
     });
@@ -184,7 +209,15 @@ export const deleteKuesionerService = async (id) => {
       throw new ApiError(403, "Kuesioner hanya bisa dihapus ketika status Draft");
     }
 
-    // Cek responden
+    // Cek variabel → indikator & pertanyaan mengikuti variabel
+    const existVariabel = await tx.variabel.findFirst({
+      where: { kuesionerId },
+    });
+
+    if (existVariabel) {
+      throw new ApiError(400, "Tidak bisa menghapus kuesioner karena memiliki variabel.");
+    }
+
     const existResponden = await tx.respondenProfile.findFirst({
       where: { kuesionerId },
     });
@@ -193,7 +226,6 @@ export const deleteKuesionerService = async (id) => {
       throw new ApiError(400, "Tidak bisa menghapus kuesioner karena memiliki responden");
     }
 
-    // Cek score
     const existScore = await tx.respondenScore.findFirst({
       where: { kuesionerId },
     });
@@ -202,7 +234,6 @@ export const deleteKuesionerService = async (id) => {
       throw new ApiError(400, "Tidak bisa menghapus kuesioner karena memiliki data score");
     }
 
-    // Cek distribusi
     const existDistribusi = await tx.distribusiKuesioner.findFirst({
       where: { kuesionerId },
     });
@@ -211,7 +242,6 @@ export const deleteKuesionerService = async (id) => {
       throw new ApiError(400, "Tidak bisa menghapus kuesioner karena sudah didistribusi");
     }
 
-    // Hapus
     return tx.kuesioner.delete({
       where: { kuesionerId },
     });
@@ -220,9 +250,8 @@ export const deleteKuesionerService = async (id) => {
 
 
 
-/* ======================================================
-   ARSIPKAN KUESIONER
-====================================================== */
+
+// arsip kuesioner
 export const arsipKuesionerService = async (id) => {
   const kuesionerId = Number(id);
 

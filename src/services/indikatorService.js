@@ -1,152 +1,132 @@
 import prisma from "../config/prisma.js";
 import ApiError from "../utils/apiError.js";
 
+// get all indikator by variabels
+export const getIndikatorService = async (variabelId) => {
+  const id = Number(variabelId);
 
-/**
- * GET ALL INDICATOR BY KUESIONER (list)
- */
-export const getIndikatorService = async (kuesionerId) => {
-  const id = Number(kuesionerId);
-
-  // Pastikan kuesioner ada
-  await prisma.kuesioner.findUniqueOrThrow({
-    where: { kuesionerId: id },
+  await prisma.variabel.findUniqueOrThrow({
+    where: { variabelId: id },
   });
 
   const items = await prisma.indikator.findMany({
-    where: { kuesionerId: id },
+    where: { variabelId: id },
     orderBy: { indikatorId: "asc" },
   });
 
   return items;
 };
 
+// create indikator
+export const createIndikatorService = async (variabelId, data) => {
+  const id = Number(variabelId);
 
-/**
- * CREATE INDICATOR
- */
-export const createIndikatorService = async (kuesionerId, data) => {
-  const id = Number(kuesionerId);
-
-  // Ambil kuesioner
-  const kues = await prisma.kuesioner.findUniqueOrThrow({
-    where: { kuesionerId: id },
+  const variabel = await prisma.variabel.findUniqueOrThrow({
+    where: { variabelId: id },
+    include: { kuesioner: true },
   });
 
-  // Tidak boleh create kalau tidak draft
-  if (kues.status !== "Draft") {
+  if (variabel.kuesioner.status !== "Draft") {
     throw new ApiError(400, "Indikator hanya bisa dibuat jika kuesioner berstatus Draft");
   }
 
-  // Cek nama unik
+  // cek nama unik
   const existName = await prisma.indikator.findFirst({
-    where: { kuesionerId: id, nama: data.nama.trim() },
+    where: {
+      variabelId: id,
+      nama: data.nama.trim(),
+    },
   });
   if (existName) throw new ApiError(400, "Nama indikator sudah digunakan");
 
-  // Cek kode unik
+  // cek kode unik
   const existKode = await prisma.indikator.findFirst({
-    where: { kuesionerId: id, kode: data.kode.trim() },
+    where: {
+      variabelId: id,
+      kode: data.kode.trim(),
+    },
   });
   if (existKode) throw new ApiError(400, "Kode indikator sudah digunakan");
 
-  const newIndikator = await prisma.indikator.create({
+  return prisma.indikator.create({
     data: {
-      kuesionerId: id,
+      variabelId: id,
       nama: data.nama.trim(),
       kode: data.kode.trim(),
     },
   });
-
-  return newIndikator;
 };
 
 
-/**
- * UPDATE INDICATOR (PATCH)
- */
-export const updateIndikatorService = async (id, updateData) => {
+// update indikator (PATCH)
+export const updateIndikatorService = async (id, data) => {
   const indikatorId = Number(id);
 
-  // ambil indikator
   const indikator = await prisma.indikator.findUniqueOrThrow({
     where: { indikatorId },
-    include: { kuesioner: true },
+    include: { variabel: { include: { kuesioner: true } } },
   });
 
-  // Kuesioner harus Draft
-  if (indikator.kuesioner.status !== "Draft") {
+  if (indikator.variabel.kuesioner.status !== "Draft") {
     throw new ApiError(400, "Indikator hanya bisa diperbarui jika kuesioner berstatus Draft");
   }
 
-  const dataToUpdate = {};
+  const updateData = {};
 
-  if (updateData.nama) {
+  if (data.nama) {
     const existName = await prisma.indikator.findFirst({
       where: {
-        kuesionerId: indikator.kuesionerId,
-        nama: updateData.nama.trim(),
+        variabelId: indikator.variabelId,
+        nama: data.nama.trim(),
         indikatorId: { not: indikatorId },
       },
     });
     if (existName) throw new ApiError(400, "Nama indikator sudah digunakan");
-    dataToUpdate.nama = updateData.nama.trim();
+    updateData.nama = data.nama.trim();
   }
 
-  if (updateData.kode) {
+  if (data.kode) {
     const existKode = await prisma.indikator.findFirst({
       where: {
-        kuesionerId: indikator.kuesionerId,
-        kode: updateData.kode.trim(),
+        variabelId: indikator.variabelId,
+        kode: data.kode.trim(),
         indikatorId: { not: indikatorId },
       },
     });
     if (existKode) throw new ApiError(400, "Kode indikator sudah digunakan");
-    dataToUpdate.kode = updateData.kode.trim();
+    updateData.kode = data.kode.trim();
   }
 
-  const updated = await prisma.indikator.update({
+  return prisma.indikator.update({
     where: { indikatorId },
-    data: dataToUpdate,
+    data: updateData,
   });
-
-  return updated;
 };
 
 
-/**
- * DELETE INDICATOR
- */
+// delete indikator
 export const deleteIndikatorService = async (id) => {
   const indikatorId = Number(id);
 
   return prisma.$transaction(async (tx) => {
     const indikator = await tx.indikator.findUniqueOrThrow({
       where: { indikatorId },
-      include: { kuesioner: true },
+      include: { variabel: { include: { kuesioner: true } } },
     });
 
-    // hanya draft yang boleh hapus
-    if (indikator.kuesioner.status !== "Draft") {
+    if (indikator.variabel.kuesioner.status !== "Draft") {
       throw new ApiError(400, "Indikator hanya bisa dihapus jika kuesioner berstatus Draft");
     }
 
-    // cek pertanyaan
     const hasPertanyaan = await tx.pertanyaan.findFirst({
       where: { indikatorId },
     });
+    if (hasPertanyaan) throw new ApiError(400, "Indikator memiliki pertanyaan, tidak bisa dihapus");
 
-    if (hasPertanyaan) {
-      throw new ApiError(400, "Indikator tidak bisa dihapus karena memiliki pertanyaan");
-    }
-
-    // cek score/responden
     const hasScore = await tx.respondenScore.findFirst({
       where: { indikatorId },
     });
-    if (hasScore) {
-      throw new ApiError(400, "Indikator tidak bisa dihapus karena memiliki data score");
-    }
+    if (hasScore) throw new ApiError(400, "Indikator memiliki data score, tidak bisa dihapus");
 
     return tx.indikator.delete({
       where: { indikatorId },

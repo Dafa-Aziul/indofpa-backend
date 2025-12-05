@@ -4,6 +4,7 @@ import { Router } from "express";
 import authRoute from "./authRoute.js";
 import kategoriRoute from "./kategoriRoute.js";
 import kuesionerRoute from "./kuesionerRoute.js";
+import variabelRoute from "./variabelRoute.js";
 import indikatorRoute from "./indikatorRoute.js";
 import pertanyaanRoute from "./pertanyaanRoute.js";
 import publicRoute from "./publicRoute.js";
@@ -24,6 +25,9 @@ router.use("/kategori", kategoriRoute);
 
 // Kuesioner
 router.use("/kuesioner", kuesionerRoute);
+
+// Variabel
+router.use("/variabel", variabelRoute);
 
 // Indikator
 router.use("/indikator", indikatorRoute);

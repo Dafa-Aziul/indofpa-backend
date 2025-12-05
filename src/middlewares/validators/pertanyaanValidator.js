@@ -2,22 +2,17 @@ import { body, param } from "express-validator";
 import { validate } from "../validate.js";
 
 
-/* ============================================
-   GET PERTANYAAN PER INDIKATOR
-   ============================================ */
+// get pertanyaan list
 export const getPertanyaanValidator = [
   param("indikatorId")
     .notEmpty().withMessage("ID indikator wajib diberikan")
     .isInt().withMessage("ID indikator harus berupa angka")
     .toInt(),
-
   validate,
 ];
 
 
-/* ============================================
-   CREATE PERTANYAAN
-   ============================================ */
+// create pertanyaan
 export const createPertanyaanValidator = [
   param("indikatorId")
     .notEmpty().withMessage("ID indikator wajib diberikan")
@@ -30,23 +25,21 @@ export const createPertanyaanValidator = [
 
   body("urutan")
     .notEmpty().withMessage("Urutan wajib diisi")
-    .isInt({ min: 1 }).withMessage("Urutan harus berupa angka dan minimal 1")
+    .isInt({ min: 1 }).withMessage("Urutan harus angka minimal 1")
     .toInt(),
 
   validate,
 ];
 
 
-/* ============================================
-   UPDATE PERTANYAAN (PATCH)
-   ============================================ */
+// update pertanyaan (patch)
 export const updatePertanyaanValidator = [
   param("id")
     .notEmpty().withMessage("ID pertanyaan wajib diberikan")
     .isInt().withMessage("ID pertanyaan harus berupa angka")
     .toInt(),
 
-  // Body tidak boleh kosong
+  // body wajib object dan tidak boleh kosong
   body().custom((value) => {
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       throw new Error("Body harus berupa object JSON");
@@ -64,16 +57,14 @@ export const updatePertanyaanValidator = [
 
   body("urutan")
     .optional()
-    .isInt({ min: 1 }).withMessage("Urutan harus berupa angka minimal 1")
+    .isInt({ min: 1 }).withMessage("Urutan harus angka minimal 1")
     .toInt(),
 
   validate,
 ];
 
 
-/* ============================================
-   DELETE PERTANYAAN
-   ============================================ */
+// delete pertanyaan
 export const deletePertanyaanValidator = [
   param("id")
     .notEmpty().withMessage("ID pertanyaan wajib diberikan")

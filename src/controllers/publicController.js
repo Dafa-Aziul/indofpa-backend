@@ -1,8 +1,33 @@
 import { success } from "../utils/response.js";
 import {
   getPublicKuesionerService,
-  submitKuesionerService
+  submitKuesionerService,
+  getPublicKuesionerListService,
+  getPublicKuesionerDetailService
 } from "../services/publicService.js";
+
+
+export const getPublicKuesionerList = async (req, res, next) => {
+  try {
+    const data = await getPublicKuesionerListService();
+    return success(res, "Berhasil mengambil daftar kuesioner publik", data);
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+// GET detail kuesioner public (by kuesionerId)
+export const getPublicKuesionerDetail = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const data = await getPublicKuesionerDetailService(id);
+
+    return success(res, "Berhasil mengambil detail kuesioner publik", data);
+  } catch (err) {
+    next(err);
+  }
+};
 
 export const getPublicKuesioner = async (req, res, next) => {
   try {

@@ -18,42 +18,37 @@ import {
 
 import pertanyaanRoute from "./pertanyaanRoute.js";
 
-const router = Router({mergeParams: true});
+const router = Router({ mergeParams: true });
 
-
-// LIST indikator dalam kuesioner
-router.get(
-  "/",
+// get indikator list
+router.get("/",
   authMiddleware,
   getIndikatorValidator,
   getIndikator
 );
 
-// CREATE indikator dalam kuesioner
-router.post(
-  "/",
+// create indikator
+router.post("/",
   authMiddleware,
   createIndikatorValidator,
   createIndikator
 );
 
-// UPDATE indicator
-router.patch(
-  "/:id",
+// update indikator
+router.patch("/:id",
   authMiddleware,
   updateIndikatorValidator,
   updateIndikator
 );
 
-// DELETE indicator
-router.delete(
-  "/:id",
+// delete indikator
+router.delete("/:id",
   authMiddleware,
   deleteIndikatorValidator,
-  deleteIndikator
+  deleteIndikator 
 );
 
-// NESTED: pertanyaan dalam indikator
+// nested: pertanyaan
 router.use("/:indikatorId/pertanyaan", pertanyaanRoute);
 
 export default router;

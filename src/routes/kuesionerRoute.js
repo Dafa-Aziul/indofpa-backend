@@ -18,7 +18,7 @@ import {
   arsipKuesionerValidator
 } from "../middlewares/validators/kuesionerValidator.js";
 
-import indikatorRoute from "./indikatorRoute.js";
+import variabelRoute from "./variabelRoute.js";
 import distribusiRoute from "./distribusiRoute.js"
 
 const router = Router();
@@ -63,7 +63,7 @@ router.patch(
 
 
 // NESTED: INDIKATOR DALAM KUESIONER
-router.use("/:kuesionerId/indikator", indikatorRoute);
+router.use("/:kuesionerId/variabel", variabelRoute);
 router.use("/:kuesionerId/distribusi", distribusiRoute);
 
 

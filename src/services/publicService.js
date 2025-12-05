@@ -1,9 +1,73 @@
 import prisma from "../config/prisma.js";
 import ApiError from "../utils/apiError.js";
 
-/**
- * GET Public Kuesioner by kode akses
- */
+// GET semua kuesioner Publish
+export const getPublicKuesionerListService = async () => {
+  const now = new Date();
+
+  const list = await prisma.distribusiKuesioner.findMany({
+    where: {
+      kuesioner: { status: "Publish" },
+      tanggalMulai: { lte: now },
+      tanggalSelesai: { gte: now }
+    },
+    include: {
+      kuesioner: {
+        include: {
+          kategori: true
+        }
+      }
+    },
+    orderBy: { distribusiId: "desc" }
+  });
+
+  return list.map(item => ({
+    distribusiId: item.distribusiId,
+    kodeAkses: item.kodeAkses,
+    urlLink: item.urlLink,
+    kuesionerId: item.kuesioner.kuesionerId,
+    judul: item.kuesioner.judul,
+    kategori: item.kuesioner.kategori?.nama || null,
+    tanggalMulai: item.tanggalMulai,
+    tanggalSelesai: item.tanggalSelesai,
+  }));
+};
+
+
+// GET Kuesioner Publish by ID (versi standar, bukan publik)
+export const getPublicKuesionerDetailService = async (kuesionerId) => {
+  const kuesioner = await prisma.kuesioner.findFirst({
+    where: {
+      kuesionerId: Number(kuesionerId),
+      status: "Publish",
+    },
+    include: {
+      kategori: true,
+    }
+  });
+
+  if (!kuesioner) {
+    throw new ApiError(404, "Kuesioner tidak ditemukan atau belum publish");
+  }
+
+  const pertanyaan = await prisma.pertanyaan.findMany({
+    where: {
+      indikator: {
+        variabel: { kuesionerId: Number(kuesionerId) }
+      }
+    },
+    orderBy: { urutan: "asc" }
+  });
+
+  return {
+    kuesioner,
+    pertanyaan
+  };
+};
+
+
+
+// GET Public Kuesioner
 export const getPublicKuesionerService = async (kodeAkses) => {
   const distribusi = await prisma.distribusiKuesioner.findFirst({
     where: { kodeAkses },
@@ -15,13 +79,14 @@ export const getPublicKuesionerService = async (kodeAkses) => {
   }
 
   const now = new Date();
+  const kuesioner = distribusi.kuesioner;
 
-  // status ARSIP tidak boleh diakses publik
-  if (distribusi.kuesioner.status === "Arsip") {
-    throw new ApiError(403, "Kuesioner sudah diarsipkan dan tidak dapat diakses");
+  // status Arsip tidak boleh diakses
+  if (kuesioner.status === "Arsip") {
+    throw new ApiError(403, "Kuesioner sudah diarsipkan");
   }
 
-  // cek waktu aktif
+  // cek tanggal aktif
   if (distribusi.tanggalMulai && now < distribusi.tanggalMulai) {
     throw new ApiError(403, "Kuesioner belum tersedia");
   }
@@ -29,32 +94,27 @@ export const getPublicKuesionerService = async (kodeAkses) => {
     throw new ApiError(403, "Kuesioner sudah ditutup");
   }
 
-  const kuesionerId = distribusi.kuesioner.kuesionerId;
+  const kuesionerId = kuesioner.kuesionerId;
 
-  // indikator
-  const indikator = await prisma.indikator.findMany({
-    where: { kuesionerId },
-    orderBy: { indikatorId: "asc" },
-  });
-
-  // pertanyaan
+  // indikator list
   const pertanyaan = await prisma.pertanyaan.findMany({
-    where: { indikator: { kuesionerId } },
-    orderBy: { urutan: "asc" },
+    where: {
+      indikator: {
+        variabel: { kuesionerId }
+      }
+    },
+    orderBy: { urutan: "asc" }
   });
 
   return {
     distribusiId: distribusi.distribusiId,
-    kuesioner: distribusi.kuesioner,
+    kuesioner,
     pertanyaan,
   };
 };
 
 
-
-/**
- * SUBMIT Kuesioner oleh responden
- */
+// SUBMIT KUESIONER PUBLIC
 export const submitKuesionerService = async (kodeAkses, profile, jawabanList) => {
   // 1) Cari distribusi
   const distribusi = await prisma.distribusiKuesioner.findFirst({
@@ -89,9 +149,19 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
 
   // 2) Validasi pertanyaan
   const pertanyaanAll = await prisma.pertanyaan.findMany({
-    where: { indikator: { kuesionerId } },
-    select: { pertanyaanId: true, indikatorId: true },
+    where: {
+      indikator: {
+        variabel: {
+          kuesionerId: Number(kuesionerId)
+        }
+      }
+    },
+    select: {
+      pertanyaanId: true,
+      indikatorId: true
+    }
   });
+
 
   const totalPertanyaan = pertanyaanAll.length;
 

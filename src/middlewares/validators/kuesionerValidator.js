@@ -1,9 +1,7 @@
 import { body, param } from "express-validator";
 import { validate } from "../validate.js";
 
-/* ============================================
-   CREATE KUESIONER VALIDATION
-   ============================================ */
+// create kuesioner validation
 export const createKuesionerValidator = [
   body("judul")
     .trim()
@@ -16,10 +14,12 @@ export const createKuesionerValidator = [
 
   body("tujuan")
     .optional()
+    .trim()
     .isString().withMessage("Tujuan harus berupa teks"),
 
   body("manfaat")
     .optional()
+    .trim()
     .isString().withMessage("Manfaat harus berupa teks"),
 
   body("estimasiMenit")
@@ -32,15 +32,11 @@ export const createKuesionerValidator = [
     .isInt({ min: 1 }).withMessage("Target responden harus angka minimal 1")
     .toInt(),
 
-  // status tidak divalidasi → biarkan service set default Draft
-
   validate,
 ];
 
 
-/* ============================================
-   UPDATE KUESIONER VALIDATION (PATCH)
-   ============================================ */
+// update kuesioner validation
 export const updateKuesionerValidator = [
   body().custom((value) => {
     if (!value || typeof value !== "object") {
@@ -64,10 +60,12 @@ export const updateKuesionerValidator = [
 
   body("tujuan")
     .optional()
+    .trim()
     .isString().withMessage("Tujuan harus berupa teks"),
 
   body("manfaat")
     .optional()
+    .trim()
     .isString().withMessage("Manfaat harus berupa teks"),
 
   body("estimasiMenit")
@@ -79,15 +77,12 @@ export const updateKuesionerValidator = [
     .optional()
     .isInt({ min: 1 }).withMessage("Target responden harus angka minimal 1")
     .toInt(),
-    
+
   validate,
 ];
 
 
-
-/* ============================================
-   DELETE KUESIONER VALIDATION
-   ============================================ */
+// delete kuesioner validation
 export const deleteKuesionerValidator = [
   param("id")
     .notEmpty().withMessage("ID wajib diberikan")
@@ -97,6 +92,7 @@ export const deleteKuesionerValidator = [
   validate,
 ];
 
+// get detail kuesioner validation
 export const getKuesionerByIdValidator = [
   param("id")
     .notEmpty().withMessage("ID wajib diberikan")
@@ -106,9 +102,12 @@ export const getKuesionerByIdValidator = [
   validate,
 ];
 
+// arsip kuesioner validation
 export const arsipKuesionerValidator = [
   param("id")
-    .isInt().withMessage("ID tidak valid")
+    .notEmpty().withMessage("ID wajib diberikan")
+    .isInt().withMessage("ID harus berupa angka")
     .toInt(),
+
   validate,
 ];

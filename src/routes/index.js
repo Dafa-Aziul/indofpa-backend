@@ -10,6 +10,7 @@ import pertanyaanRoute from "./pertanyaanRoute.js";
 import publicRoute from "./publicRoute.js";
 import monitoringRoute from "./monitoringRoute.js"
 import distribusiRoute from "./distribusiRoute.js"
+import analisisRoute from "./analisisRoute.js";
 
 const router = Router();
 
@@ -43,7 +44,7 @@ router.use("/public", publicRoute);
 // monitoring
 router.use("/monitoring", monitoringRoute);
 
-
+router.use("/analisis", analisisRoute);
 
 
 export default router;

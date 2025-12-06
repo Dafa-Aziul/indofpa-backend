@@ -93,6 +93,7 @@ model Kuesioner {
   estimasiMenit   Int?
   targetResponden Int?
   status          StatusKuesioner @default(Draft)
+  analisisConfig  Json? 
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 

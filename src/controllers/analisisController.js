@@ -35,15 +35,22 @@ export const getAnalisis = async (req, res, next) => {
   try {
     const { kuesionerId } = req.params;
 
-    const data = await getAnalisisService(kuesionerId);
+    // ambil filter dari query
+    const filters = {
+      usiaKategori: req.query.usiaKategori,
+      jenisKelamin: req.query.jenisKelamin,
+      tingkatPendidikan: req.query.tingkatPendidikan,
+      agama: req.query.agama,
+      pekerjaan: req.query.pekerjaan
+    };
+
+    const data = await getAnalisisService(kuesionerId, filters);
 
     return success(res, "Berhasil mengambil analisis kuesioner", data);
-
   } catch (err) {
     next(err);
   }
 };
-
 
 // ===============================
 // UPDATE ANALISIS CONFIG (range interpretasi skor)

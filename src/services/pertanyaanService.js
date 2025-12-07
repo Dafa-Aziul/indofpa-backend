@@ -1,18 +1,19 @@
 import prisma from "../config/prisma.js";
 import ApiError from "../utils/apiError.js";
 
+
 /**
- * GET PERTANYAAN PER INDIKATOR
+ * GET semua pertanyaan per indikator
  */
 export const getPertanyaanService = async (indikatorId) => {
   const id = Number(indikatorId);
 
-  // pastikan indikator ada
+  // cek indikator
   await prisma.indikator.findUniqueOrThrow({
     where: { indikatorId: id },
   });
 
-  // ambil pertanyaan lengkap termasuk labelSkala
+  // ambil pertanyaan
   return prisma.pertanyaan.findMany({
     where: { indikatorId: id },
     orderBy: { urutan: "asc" },
@@ -29,88 +30,101 @@ export const getPertanyaanService = async (indikatorId) => {
 };
 
 
+
 /**
- * CREATE PERTANYAAN
+ * CREATE pertanyaan
  */
 export const createPertanyaanService = async (indikatorId, data) => {
   const id = Number(indikatorId);
 
-  // cari indikator + kuesioner
+  // ambil indikator + variabel + kuesioner
   const indikator = await prisma.indikator.findUniqueOrThrow({
     where: { indikatorId: id },
-    include: { kuesioner: true },
+    include: {
+      variabel: {
+        include: { kuesioner: true },
+      },
+    },
   });
 
-  // kuesioner harus draft
-  if (indikator.kuesioner.status !== "Draft") {
-    throw new ApiError(400, "Pertanyaan hanya bisa dibuat jika kuesioner Draft");
+  // cek status draft
+  if (indikator.variabel.kuesioner.status !== "Draft") {
+    throw new ApiError(400, "Pertanyaan hanya boleh dibuat jika kuesioner Draft");
   }
 
   // validasi urutan
-  if (data.urutan === undefined || Number.isNaN(Number(data.urutan))) {
-    throw new ApiError(400, "Urutan pertanyaan wajib diisi dan harus angka");
+  if (data.urutan == null || Number.isNaN(Number(data.urutan))) {
+    throw new ApiError(400, "Urutan pertanyaan wajib berupa angka");
   }
 
-  // cek urutan tidak duplikat
+  // cek urutan duplikat
   const existOrder = await prisma.pertanyaan.findFirst({
     where: { indikatorId: id, urutan: Number(data.urutan) },
   });
 
   if (existOrder) {
-    throw new ApiError(400, "Urutan pertanyaan sudah digunakan");
+    throw new ApiError(400, "Urutan sudah digunakan");
   }
 
-  // siapkan payload
+  // payload
   const payload = {
     indikatorId: id,
-    teksPertanyaan: (data.teksPertanyaan || "").trim(),
+    teksPertanyaan: String(data.teksPertanyaan || "").trim(),
     urutan: Number(data.urutan),
     labelSkala: null,
   };
 
-  // jika labelSkala disertakan, validasi sederhana (harus object non-null)
+  // validasi labelSkala
   if (data.labelSkala !== undefined) {
     if (typeof data.labelSkala !== "object" || data.labelSkala === null || Array.isArray(data.labelSkala)) {
-      throw new ApiError(400, "labelSkala harus berupa object JSON (contoh: {\"1\":\"Tidak\",\"5\":\"Sangat\"})");
+      throw new ApiError(400, "labelSkala harus berupa object JSON");
     }
     payload.labelSkala = data.labelSkala;
   }
 
-  return prisma.pertanyaan.create({
-    data: payload,
-  });
+  return prisma.pertanyaan.create({ data: payload });
 };
 
 
+
 /**
- * UPDATE PERTANYAAN (PATCH)
+ * UPDATE pertanyaan
  */
 export const updatePertanyaanService = async (id, data) => {
   const pertanyaanId = Number(id);
 
+  // ambil pertanyaan + indikator + variabel + kuesioner
   const pertanyaan = await prisma.pertanyaan.findUniqueOrThrow({
     where: { pertanyaanId },
-    include: { indikator: { include: { kuesioner: true } } },
+    include: {
+      indikator: {
+        include: {
+          variabel: { include: { kuesioner: true } }
+        }
+      }
+    },
   });
 
-  // Kuesioner harus draft
-  if (pertanyaan.indikator.kuesioner.status !== "Draft") {
+  // hanya Draft
+  if (pertanyaan.indikator.variabel.kuesioner.status !== "Draft") {
     throw new ApiError(400, "Pertanyaan hanya bisa diupdate jika kuesioner Draft");
   }
 
   const payload = {};
 
+  // update teks
   if (data.teksPertanyaan !== undefined) {
     payload.teksPertanyaan = String(data.teksPertanyaan).trim();
   }
 
+  // update urutan
   if (data.urutan !== undefined) {
     const newUrutan = Number(data.urutan);
     if (Number.isNaN(newUrutan) || newUrutan < 1) {
       throw new ApiError(400, "Urutan tidak valid");
     }
 
-    // cek urutan tidak bentrok
+    // cek bentrok urutan
     const existOrder = await prisma.pertanyaan.findFirst({
       where: {
         indikatorId: pertanyaan.indikatorId,
@@ -119,24 +133,22 @@ export const updatePertanyaanService = async (id, data) => {
       },
     });
 
-    if (existOrder) throw new ApiError(400, "Urutan pertanyaan sudah digunakan");
+    if (existOrder) throw new ApiError(400, "Urutan sudah digunakan");
 
     payload.urutan = newUrutan;
   }
 
+  // update labelSkala
   if (data.labelSkala !== undefined) {
     if (data.labelSkala === null) {
-      // allow explicitly clearing labelSkala
       payload.labelSkala = null;
+    } else if (typeof data.labelSkala !== "object" || Array.isArray(data.labelSkala)) {
+      throw new ApiError(400, "labelSkala harus JSON object atau null");
     } else {
-      if (typeof data.labelSkala !== "object" || Array.isArray(data.labelSkala)) {
-        throw new ApiError(400, "labelSkala harus berupa object JSON atau null");
-      }
       payload.labelSkala = data.labelSkala;
     }
   }
 
-  // jika tidak ada field untuk diupdate, return object awal (atau throw?)
   if (Object.keys(payload).length === 0) {
     return pertanyaan; // tidak ada perubahan
   }
@@ -148,8 +160,9 @@ export const updatePertanyaanService = async (id, data) => {
 };
 
 
+
 /**
- * DELETE PERTANYAAN
+ * DELETE pertanyaan
  */
 export const deletePertanyaanService = async (id) => {
   const pertanyaanId = Number(id);
@@ -157,15 +170,21 @@ export const deletePertanyaanService = async (id) => {
   return prisma.$transaction(async (tx) => {
     const pertanyaan = await tx.pertanyaan.findUniqueOrThrow({
       where: { pertanyaanId },
-      include: { indikator: { include: { kuesioner: true } } },
+      include: {
+        indikator: {
+          include: {
+            variabel: { include: { kuesioner: true } }
+          }
+        }
+      },
     });
 
-    // Kuesioner harus draft
-    if (pertanyaan.indikator.kuesioner.status !== "Draft") {
+    // cek status draft
+    if (pertanyaan.indikator.variabel.kuesioner.status !== "Draft") {
       throw new ApiError(400, "Pertanyaan hanya bisa dihapus jika kuesioner Draft");
     }
 
-    // Tidak boleh delete jika sudah ada jawaban
+    // cek jawaban
     const hasJawaban = await tx.jawaban.findFirst({
       where: { pertanyaanId },
     });

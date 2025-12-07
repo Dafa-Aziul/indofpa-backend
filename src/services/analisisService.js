@@ -85,7 +85,7 @@ export const getAnalisisKuesionerListService = async ({
  *     GET ANALISIS DETAIL
  * ==========================
  */
-export const getAnalisisService = async (kuesionerId) => {
+export const getAnalisisService = async (kuesionerId, filters = {}) => {
 
     kuesionerId = Number(kuesionerId);
 
@@ -99,6 +99,45 @@ export const getAnalisisService = async (kuesionerId) => {
     });
 
     validateAnalisisConfig(kues.analisisConfig);
+
+    // ============================
+    // BUILD FILTER RESPONDEN
+    // ============================
+
+    const respondenWhere = {
+        kuesionerId,
+        ...(filters.usiaKategori && { usiaKategori: filters.usiaKategori }),
+        ...(filters.jenisKelamin && { jenisKelamin: filters.jenisKelamin }),
+        ...(filters.tingkatPendidikan && { tingkatPendidikan: filters.tingkatPendidikan }),
+        ...(filters.agama && { agama: filters.agama }),
+        ...(filters.pekerjaan && { pekerjaan: filters.pekerjaan })
+    };
+
+    const filteredResponden = await prisma.respondenProfile.findMany({
+        where: respondenWhere,
+        select: { respondenId: true }
+    });
+
+    const respondenIds = filteredResponden.map(r => r.respondenId);
+
+    const totalResponden = respondenIds.length;
+
+    // kalau tidak ada responden yang cocok → return kosong
+    if (totalResponden === 0) {
+        return {
+            kuesioner: kues,
+            totalResponden: 0,
+            pertanyaan: [],
+            indikator: [],
+            variabel: [],
+            overall: null,
+            overallInterpretasi: null
+        };
+    }
+
+    // ====================================
+    // AMBIL VARIABEL, INDIKATOR, PERTANYAAN
+    // ====================================
 
     const variabel = await prisma.variabel.findMany({
         where: { kuesionerId },
@@ -115,16 +154,18 @@ export const getAnalisisService = async (kuesionerId) => {
         orderBy: [{ indikatorId: "asc" }, { urutan: "asc" }]
     });
 
-    const totalResponden = await prisma.respondenProfile.count({
-        where: { kuesionerId }
-    });
-
-    // ambil statistik jawaban
     const pIds = pertanyaan.map(p => p.pertanyaanId);
+
+    // ============================
+    // STATISTIK PER PERTANYAAN
+    // ============================
 
     const stats = await prisma.jawaban.groupBy({
         by: ["pertanyaanId"],
-        where: { pertanyaanId: { in: pIds } },
+        where: {
+            pertanyaanId: { in: pIds },
+            respondenId: { in: respondenIds }
+        },
         _count: { nilai: true },
         _avg: { nilai: true }
     });
@@ -137,10 +178,16 @@ export const getAnalisisService = async (kuesionerId) => {
         });
     });
 
-    // ambil score normalisasi per indikator (respondenScore)
+    // ============================
+    // SCORE NORMALISASI PER INDIKATOR
+    // ============================
+
     const indikatorScore = await prisma.respondenScore.groupBy({
         by: ["indikatorId"],
-        where: { kuesionerId },
+        where: {
+            kuesionerId,
+            respondenId: { in: respondenIds }
+        },
         _avg: { scoreNormalized: true, scoreRaw: true }
     });
 
@@ -154,19 +201,9 @@ export const getAnalisisService = async (kuesionerId) => {
         });
     });
 
-    /**
-     * ===========
-     * PERTANYAAN
-     * ===========
-     * Format menjadi array per indikator:
-     * [
-     *   {
-     *     indikatorId,
-     *     indikatorNama,
-     *     pertanyaan: [ ... ]
-     *   }
-     * ]
-     */
+    // ============================
+    // FORMAT PERTANYAAN
+    // ============================
 
     const pertanyaanResponse = indikator.map(ind => {
         const list = pertanyaan.filter(p => p.indikatorId === ind.indikatorId);
@@ -203,11 +240,9 @@ export const getAnalisisService = async (kuesionerId) => {
         };
     });
 
-    /**
-     * ===========
-     * INDIKATOR
-     * ===========
-     */
+    // ============================
+    // HASIL PER INDIKATOR
+    // ============================
 
     const indikatorResult = indikator.map(i => {
         const sc = indScoreMap.get(i.indikatorId) || {
@@ -227,11 +262,9 @@ export const getAnalisisService = async (kuesionerId) => {
         };
     });
 
-    /**
-     * ==========
-     * VARIABEL
-     * ==========
-     */
+    // ============================
+    // HASIL PER VARIABEL
+    // ============================
 
     const variabelResult = variabel.map(v => {
         const inds = indikatorResult.filter(i => i.variabelId === v.variabelId);
@@ -257,11 +290,9 @@ export const getAnalisisService = async (kuesionerId) => {
         };
     });
 
-    /**
-     * ========
-     * OVERALL
-     * ========
-     */
+    // ============================
+    // OVERALL
+    // ============================
 
     const validVars = variabelResult.filter(v => v.avgNormalized !== null);
     const overall =

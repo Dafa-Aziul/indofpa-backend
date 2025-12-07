@@ -18,6 +18,14 @@ const router = Router();
 // ROUTE GROUPING
 // ===============================
 
+router.get("/", (req, res) => {
+  res.json({
+    status: "success",
+    message: "API is running",
+    time: new Date().toISOString()
+  });
+});
+
 // Auth
 router.use("/auth", authRoute);
 

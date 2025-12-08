@@ -62,7 +62,7 @@ enum Agama {
 
 model User {
   userId    Int      @id @default(autoincrement())
-  nama      String
+  name      String
   email     String   @unique
   password  String
   createdAt DateTime @default(now())
@@ -226,7 +226,8 @@ model DistribusiKuesioner {
 
 model RefreshToken {
   refreshTokenId Int      @id @default(autoincrement())
-  token          String   @unique
+  token          String   @db.Text
+  jti            String   @unique 
   userId         Int
   user           User     @relation(fields: [userId], references: [userId])
   expiredAt      DateTime

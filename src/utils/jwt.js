@@ -1,28 +1,42 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
+const ISSUER = process.env.JWT_ISSUER || "your-app";
 
+// BEST PRACTICE: Access token hanya 15 menit
 export const createAccessToken = (payload, expiresIn = "15m") => {
-  return jwt.sign(payload, ACCESS_SECRET, { expiresIn });
+  return jwt.sign(
+    { ...payload },
+    ACCESS_SECRET,
+    { expiresIn, issuer: ISSUER }
+  );
 };
 
-export const createRefreshToken = (payload, expiresIn = "30d") => {
-  return jwt.sign(payload, REFRESH_SECRET, { expiresIn });
+// BEST PRACTICE: Refresh token 7 hari, rotate
+export const createRefreshToken = (payload, expiresIn = "7d") => {
+  const jti = crypto.randomUUID();
+  const token = jwt.sign(
+    { ...payload, jti },
+    REFRESH_SECRET,
+    { expiresIn, issuer: ISSUER }
+  );
+  return { token, jti };
 };
 
 export const verifyAccessToken = (token) => {
   try {
     return jwt.verify(token, ACCESS_SECRET);
-  } catch (err) {
+  } catch {
     return null;
   }
-}
+};
 
 export const verifyRefreshToken = (token) => {
   try {
     return jwt.verify(token, REFRESH_SECRET);
-  } catch (err) {
+  } catch {
     return null;
   }
-}
+};

@@ -93,13 +93,13 @@ model Kuesioner {
   estimasiMenit   Int?
   targetResponden Int?
   status          StatusKuesioner @default(Draft)
-  analisisConfig  Json? 
+  analisisConfig  Json?
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
 
   pembuat    User                  @relation("PembuatKuesioner", fields: [pembuatId], references: [userId])
   kategori   Kategori              @relation("KategoriKuesioner", fields: [kategoriId], references: [kategoriId])
-  variabel   Variabel[]           
+  variabel   Variabel[]
   responden  RespondenProfile[]
   score      RespondenScore[]
   distribusi DistribusiKuesioner[]
@@ -146,7 +146,7 @@ model Pertanyaan {
   indikatorId    Int
   teksPertanyaan String
   urutan         Int
-  labelSkala     Json? 
+  labelSkala     Json?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

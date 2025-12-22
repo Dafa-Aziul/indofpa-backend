@@ -9,12 +9,15 @@ export const getPublicKuesionerListService = async () => {
     where: {
       kuesioner: { status: "Publish" },
       tanggalMulai: { lte: now },
-      tanggalSelesai: { gte: now }
+      tanggalSelesai: { gte: now },
     },
     include: {
       kuesioner: {
-        include: {
-          kategori: true
+        select: {
+          judul: true,
+          kuesionerId: true,
+          kategori: true,
+          tujuan: true
         }
       }
     },
@@ -23,11 +26,13 @@ export const getPublicKuesionerListService = async () => {
 
   return list.map(item => ({
     distribusiId: item.distribusiId,
+    kuesionerId: item.kuesioner.kuesionerId,
     kodeAkses: item.kodeAkses,
     urlLink: item.urlLink,
     kuesionerId: item.kuesioner.kuesionerId,
     judul: item.kuesioner.judul,
-    kategori: item.kuesioner.kategori?.nama || null,
+    tujuan: item.kuesioner.tujuan,
+    kategori: item.kuesioner.kategori,
     tanggalMulai: item.tanggalMulai,
     tanggalSelesai: item.tanggalSelesai,
   }));
@@ -42,8 +47,18 @@ export const getPublicKuesionerDetailService = async (kuesionerId) => {
       status: "Publish",
     },
     include: {
-      kategori: true,
-    }
+      kategori: {
+        select: {
+          nama: true
+        }
+
+      },
+      distribusi: { // Menghapus kata 'select :' dan menggantinya dengan objek Prisma yang benar
+        select: {
+          kodeAkses: true,
+        },
+      },
+    },
   });
 
   if (!kuesioner) {
@@ -125,68 +140,51 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
   if (!distribusi) throw new ApiError(404, "Kode akses tidak ditemukan");
 
   const now = new Date();
-
-  // status ARSIP
-  if (distribusi.kuesioner.status === "Arsip") {
-    throw new ApiError(403, "Kuesioner sudah diarsipkan");
-  }
-
-  // cek waktu aktif
-  if (distribusi.tanggalMulai && now < distribusi.tanggalMulai) {
-    throw new ApiError(403, "Distribusi belum dimulai");
-  }
-  if (distribusi.tanggalSelesai && now > distribusi.tanggalSelesai) {
-    throw new ApiError(403, "Distribusi sudah berakhir");
-  }
-
   const kuesioner = distribusi.kuesioner;
 
-  if (kuesioner.status !== "Publish") {
-    throw new ApiError(403, "Kuesioner belum dipublikasikan");
-  }
+  // Cek Status & Waktu Aktif
+  if (kuesioner.status === "Arsip") throw new ApiError(403, "Kuesioner sudah diarsipkan");
+  if (kuesioner.status !== "Publish") throw new ApiError(403, "Kuesioner belum dipublikasikan");
+  if (distribusi.tanggalMulai && now < distribusi.tanggalMulai) throw new ApiError(403, "Distribusi belum dimulai");
+  if (distribusi.tanggalSelesai && now > distribusi.tanggalSelesai) throw new ApiError(403, "Distribusi sudah berakhir");
 
   const kuesionerId = kuesioner.kuesionerId;
 
-  // 2) Validasi pertanyaan
+  // 2) Ambil semua pertanyaan kuesioner ini LENGKAP dengan labelSkala
   const pertanyaanAll = await prisma.pertanyaan.findMany({
     where: {
-      indikator: {
-        variabel: {
-          kuesionerId: Number(kuesionerId)
-        }
-      }
+      indikator: { variabel: { kuesionerId: Number(kuesionerId) } }
     },
     select: {
       pertanyaanId: true,
-      indikatorId: true
+      indikatorId: true,
+      labelSkala: true // Penting untuk validasi & normalisasi dinamis
     }
   });
 
-
   const totalPertanyaan = pertanyaanAll.length;
-
-  const mapValid = new Map();
-  for (const p of pertanyaanAll) mapValid.set(p.pertanyaanId, p.indikatorId);
-
-  // Cek jumlah jawaban
   if (jawabanList.length !== totalPertanyaan) {
-    throw new ApiError(400, "Semua pertanyaan harus dijawab");
+    throw new ApiError(400, `Semua pertanyaan harus dijawab (${jawabanList.length}/${totalPertanyaan})`);
   }
 
-  // Cek duplikasi pertanyaanId
-  const idSet = new Set(jawabanList.map(j => Number(j.pertanyaanId)));
-  if (idSet.size !== jawabanList.length) {
-    throw new ApiError(400, "Tidak boleh ada pertanyaan dijawab dua kali");
-  }
+  // Map untuk mempermudah pencarian data asli pertanyaan
+  const mapPertanyaan = new Map();
+  pertanyaanAll.forEach(p => mapPertanyaan.set(p.pertanyaanId, p));
 
-  // cek pertanyaan dan nilai
+  // --- VALIDASI JAWABAN DINAMIS ---
   for (const a of jawabanList) {
-    if (!mapValid.has(Number(a.pertanyaanId))) {
-      throw new ApiError(400, `Pertanyaan ID ${a.pertanyaanId} tidak valid`);
-    }
+    const pId = Number(a.pertanyaanId);
+    const dataAsli = mapPertanyaan.get(pId);
+
+    if (!dataAsli) throw new ApiError(400, `Pertanyaan ID ${pId} tidak valid`);
+
+    // Cari batas maksimal skala dari labelSkala (misal: "1" s/d "6")
+    const keysSkala = Object.keys(dataAsli.labelSkala || {}).map(Number);
+    const maxSkalaTersedia = Math.max(...keysSkala) || 5;
+
     const nilai = Number(a.nilai);
-    if (nilai < 1 || nilai > 5) {
-      throw new ApiError(400, `Nilai pertanyaan ${a.pertanyaanId} harus antara 1-5`);
+    if (nilai < 1 || nilai > maxSkalaTersedia) {
+      throw new ApiError(400, `Nilai untuk pertanyaan ${pId} harus antara 1-${maxSkalaTersedia}`);
     }
   }
 
@@ -199,7 +197,7 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
   }
 
   // 4) Transaction: create responden, jawaban, score
-  const result = await prisma.$transaction(async (tx) => {
+  return await prisma.$transaction(async (tx) => {
     const responden = await tx.respondenProfile.create({
       data: {
         kuesionerId,
@@ -216,7 +214,7 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
 
     const respondenId = responden.respondenId;
 
-    // insert jawaban
+    // Simpan jawaban
     for (const a of jawabanList) {
       await tx.jawaban.create({
         data: {
@@ -227,22 +225,27 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
       });
     }
 
-    // Hitung score per indikator
+    // --- HITUNG SCORE PER INDIKATOR (DINAMIS) ---
     const indikatorMap = new Map();
-    for (const a of jawabanList) {
-      const pid = Number(a.pertanyaanId);
-      const indId = mapValid.get(pid);
+    jawabanList.forEach(a => {
+      const pId = Number(a.pertanyaanId);
+      const indId = mapPertanyaan.get(pId).indikatorId;
       if (!indikatorMap.has(indId)) indikatorMap.set(indId, []);
       indikatorMap.get(indId).push(Number(a.nilai));
-    }
+    });
 
     const scores = [];
+    for (const [indikatorId, listNilai] of indikatorMap.entries()) {
+      const raw = listNilai.reduce((s, x) => s + x, 0) / listNilai.length;
 
-    for (const [indikatorId, arr] of indikatorMap.entries()) {
-      const raw = arr.reduce((s, x) => s + x, 0) / arr.length;
+      // Ambil max scale dari salah satu pertanyaan di indikator ini
+      const contohP = pertanyaanAll.find(p => p.indikatorId === indikatorId);
+      const keysSkala = Object.keys(contohP.labelSkala || {}).map(Number);
+      const maxScale = Math.max(...keysSkala) || 5;
 
-      // 1 → 0, 5 → 100
-      const norm = ((raw - 1) / 4) * 100;
+      // RUMUS NORMALISASI DINAMIS: ((Raw - 1) / (Max - 1)) * 100
+      const pembagi = maxScale - 1 > 0 ? maxScale - 1 : 1;
+      const norm = ((raw - 1) / pembagi) * 100;
 
       const saved = await tx.respondenScore.create({
         data: {
@@ -254,12 +257,7 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
         },
       });
 
-      scores.push({
-        indikatorId,
-        scoreRaw: raw,
-        scoreNormalized: norm,
-        respondenScoreId: saved.respondenScoreId,
-      });
+      scores.push({ indikatorId, scoreRaw: raw, scoreNormalized: norm });
     }
 
     await tx.respondenProfile.update({
@@ -269,6 +267,22 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
 
     return { respondenId, scores };
   });
+};
 
-  return result;
+
+export const checkEmailDuplicateService = async (email, kuesionerId) => {
+  const existingResponden = await prisma.respondenProfile.findUnique({
+    where: {
+      email_kuesionerId: {
+        email: email,
+        kuesionerId: Number(kuesionerId),
+      },
+    },
+    select: {
+      respondenId: true, // Hanya ambil ID saja agar query lebih ringan
+    },
+  });
+
+  // Jika data ditemukan, berarti duplikat (true)
+  return !!existingResponden;
 };

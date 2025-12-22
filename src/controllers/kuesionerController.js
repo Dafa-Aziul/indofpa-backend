@@ -15,7 +15,7 @@ export const getKuesioner = async (req, res, next) => {
     const {
       search = "",
       status = "",
-      kategori = "",
+      kategoriId = "",
       page = 1,
       limit = 10,
     } = req.query;
@@ -23,7 +23,7 @@ export const getKuesioner = async (req, res, next) => {
     const result = await getKuesionerService({
       search,
       status,
-      kategori,
+      kategoriId,
       page: Number(page),
       limit: Number(limit),
     });

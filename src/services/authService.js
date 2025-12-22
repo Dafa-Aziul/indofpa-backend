@@ -18,7 +18,7 @@ export const loginService = async (email, password, remember = false) => {
   const match = await bcrypt.compare(password, user.password);
   if (!match) return { success: false, code: 401, message: "Email atau password salah" };
 
-  const accessExp  = remember ? "1h" : "15m";
+  const accessExp = remember ? "1h" : "15m";
   const refreshExp = remember ? "30d" : "7d";
 
   // ADD NAME → FIX !!!
@@ -49,7 +49,7 @@ export const loginService = async (email, password, remember = false) => {
       refreshToken,
       user: {
         userId: user.userId,
-        nama: user.nama,
+        name: user.name,
         email: user.email,
       }
     }
@@ -58,65 +58,89 @@ export const loginService = async (email, password, remember = false) => {
 
 
 
+// services/auth.service.js
 export const rotateRefreshTokenService = async (oldRefreshToken) => {
+  // 1. Verify refresh token JWT
   const decoded = verifyRefreshToken(oldRefreshToken);
-  if (!decoded)
-    return { success: false, code: 401, message: "Refresh token invalid atau expired" };
+  if (!decoded) {
+    return {
+      success: false,
+      code: 401,
+      message: "Refresh token invalid atau expired",
+    };
+  }
 
   const userId = decoded.userId;
 
-  // Cek token lama di database
+  // 2. Pastikan refresh token masih tersimpan di DB
   const stored = await prisma.refreshToken.findFirst({
-    where: { token: oldRefreshToken }
+    where: { token: oldRefreshToken },
   });
 
-  if (!stored)
-    return { success: false, code: 403, message: "Refresh token sudah dicabut" };
+  if (!stored) {
+    return {
+      success: false,
+      code: 403,
+      message: "Refresh token sudah dicabut",
+    };
+  }
 
-  // Hapus refresh lama
-  await prisma.refreshToken.deleteMany({ where: { token: oldRefreshToken } });
-
-  // 🔥 Ambil user dari database — FIX!!!
+  // 3. Ambil data user (INI YANG PENTING)
   const user = await prisma.user.findUnique({
     where: { userId },
-    select: { userId: true, nama: true, email: true },
+    select: {
+      userId: true,
+      name: true,
+      email: true,
+    },
   });
 
-  if (!user)
-    return { success: false, code: 404, message: "User tidak ditemukan" };
+  if (!user) {
+    return {
+      success: false,
+      code: 404,
+      message: "User tidak ditemukan",
+    };
+  }
 
-  // 🔥 Access token baru lengkap — FIX!!!
+  // 4. Buat token baru
   const newAccessToken = createAccessToken(
     {
       userId: user.userId,
-      name: user.nama,
       email: user.email,
     },
     "15m"
   );
 
-  // Refresh token baru
   const { token: newRefreshToken, jti } = createRefreshToken(
-    { userId },
+    { userId: user.userId },
     "7d"
   );
 
+  // 5. Simpan refresh token baru
   await prisma.refreshToken.create({
     data: {
       token: newRefreshToken,
       jti,
-      userId,
-      expiredAt: new Date(Date.now() + ms("7d"))
-    }
+      userId: user.userId,
+      expiredAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
   });
 
+  // 6. Hapus refresh token lama (ROTATION)
+  await prisma.refreshToken.deleteMany({
+    where: { token: oldRefreshToken },
+  });
+
+  // 7. Return LENGKAP
   return {
     success: true,
-    code: 200,
-    newAccessToken,
-    newRefreshToken
+    accessToken: newAccessToken,
+    refreshToken: newRefreshToken,
+    user, // ⬅️ INI WAJIB
   };
 };
+
 
 
 

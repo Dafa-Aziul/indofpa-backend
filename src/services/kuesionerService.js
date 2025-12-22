@@ -6,7 +6,7 @@ import ApiError from "../utils/apiError.js";
 export const getKuesionerService = async ({
   search,
   status,
-  kategori,
+  kategoriId,
   page,
   limit,
 }) => {
@@ -17,26 +17,34 @@ export const getKuesionerService = async ({
     AND: [
       search ? { judul: { contains: search} } : undefined,
       status ? { status } : undefined,
-      kategori ? { kategoriId: Number(kategori) } : undefined,
+      kategoriId ? { kategoriId: Number(kategoriId) } : undefined,
     ].filter(Boolean),
   };
 
   const items = await prisma.kuesioner.findMany({
-    where,
-    skip,
-    take: limit,
-    orderBy: { createdAt: "desc" },
-    include: {
-      kategori: true,
-      pembuat: { select: { userId: true, nama: true, email: true } },
-      _count: {
-        select: {
-          responden: true,
-          variabel: true,
-        },
+  where,
+  skip,
+  take: limit,
+  orderBy: { createdAt: "desc" },
+  include: {
+    kategori: true,
+    pembuat: { select: { userId: true, name: true, email: true } },
+    distribusi: {
+      select: {
+        distribusiId: true,
+        tanggalMulai: true,
+        tanggalSelesai: true,
       },
     },
-  });
+    _count: {
+      select: {
+        responden: true,
+        variabel: true,
+      },
+    },
+  },
+});
+
 
   const total = await prisma.kuesioner.count({ where });
 
@@ -63,7 +71,7 @@ export const getKuesionerByIdService = async (id) => {
     where: { kuesionerId },
     include: {
       kategori: true,
-      pembuat: { select: { userId: true, nama: true, email: true } },
+      pembuat: { select: { userId: true, name:true, email: true } },
       distribusi: true,
       _count: { select: { responden: true } }
     }

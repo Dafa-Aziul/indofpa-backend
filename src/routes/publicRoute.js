@@ -4,7 +4,8 @@ import {
   getPublicKuesioner,
   submitKuesioner,
   getPublicKuesionerList,
-  getPublicKuesionerDetail
+  getPublicKuesionerDetail,
+  checkEmailDuplicate
 } from "../controllers/publicController.js";
 
 import {
@@ -20,9 +21,11 @@ router.get("/kuesioner", getPublicKuesionerList);
 // GET Detail Kuesioner Publik
 router.get("/kuesioner/:id", getPublicKuesionerDetail);
 
+router.get("/check-email", checkEmailDuplicate);
+
 // GET Kuesioner Publik
 router.get(
-  "/kuesioner/:kodeAkses",
+  "/isi-kuesioner/:kodeAkses",
   getPublicKuesionerValidator,
   getPublicKuesioner
 );

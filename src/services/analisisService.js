@@ -89,28 +89,65 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
 
     kuesionerId = Number(kuesionerId);
 
+    // 1. Ambil Kuesioner dan Validasi
     const kues = await prisma.kuesioner.findUniqueOrThrow({
         where: { kuesionerId },
         select: {
             kuesionerId: true,
             judul: true,
-            analisisConfig: true
+            analisisConfig: true,
+            distribusi: {
+                select: {
+                    tanggalSelesai: true
+                }
+            }
         }
     });
 
     validateAnalisisConfig(kues.analisisConfig);
 
+    // ===================================
+    // ✨ FINAL PERBAIKAN: PRE-PROCESSING FILTER (Menangani format key=val&key=val)
+    // ===================================
+    // Asumsi: Frontend mengirim key normal. Express mem-parsing key berulang menjadi array.
+    // Kita pastikan semua nilai yang diterima (array atau string tunggal) menjadi Array<string> yang bersih.
+
+    const cleanFilters = {};
+    const filterKeys = ['usiaKategori', 'jenisKelamin', 'tingkatPendidikan', 'agama', 'pekerjaan'];
+
+    filterKeys.forEach(key => {
+        const value = filters[key]; // Langsung ambil dari key normal
+
+        if (value) {
+            let processedValue = value;
+
+            // Jika nilai bukan array (biasanya filter single-select), ubah menjadi array tunggal.
+            if (!Array.isArray(processedValue)) {
+                processedValue = [processedValue];
+            }
+
+            // Simpan hanya jika array tidak kosong, dan pastikan elemennya string.
+            if (processedValue.length > 0) {
+                cleanFilters[key] = processedValue.map(String);
+            }
+        }
+    });
+
     // ============================
     // BUILD FILTER RESPONDEN
     // ============================
+    // Menggunakan 'cleanFilters' yang sudah dijamin array of String atau undefined.
 
     const respondenWhere = {
         kuesionerId,
-        ...(filters.usiaKategori && { usiaKategori: filters.usiaKategori }),
-        ...(filters.jenisKelamin && { jenisKelamin: filters.jenisKelamin }),
-        ...(filters.tingkatPendidikan && { tingkatPendidikan: filters.tingkatPendidikan }),
-        ...(filters.agama && { agama: filters.agama }),
-        ...(filters.pekerjaan && { pekerjaan: filters.pekerjaan })
+
+        // Gunakan cleanFilters.field dan operator { in: ... }
+        // cleanFilters[key] dijamin berupa Array<string> (atau undefined)
+        ...(cleanFilters.usiaKategori && { usiaKategori: { in: cleanFilters.usiaKategori } }),
+        ...(cleanFilters.jenisKelamin && { jenisKelamin: { in: cleanFilters.jenisKelamin } }),
+        ...(cleanFilters.tingkatPendidikan && { tingkatPendidikan: { in: cleanFilters.tingkatPendidikan } }),
+        ...(cleanFilters.agama && { agama: { in: cleanFilters.agama } }),
+        ...(cleanFilters.pekerjaan && { pekerjaan: { in: cleanFilters.pekerjaan } })
     };
 
     const filteredResponden = await prisma.respondenProfile.findMany({
@@ -155,6 +192,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
     });
 
     const pIds = pertanyaan.map(p => p.pertanyaanId);
+    const indIds = indikator.map(i => i.indikatorId);
 
     // ============================
     // STATISTIK PER PERTANYAAN
@@ -186,6 +224,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
         by: ["indikatorId"],
         where: {
             kuesionerId,
+            indikatorId: { in: indIds },
             respondenId: { in: respondenIds }
         },
         _avg: { scoreNormalized: true, scoreRaw: true }
@@ -218,10 +257,12 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
                 };
 
                 const { min, max } = extractScale(p.labelSkala);
-
+                const range = max - min;
+                
+                // ✨ FINAL PERBAIKAN: Pencegahan pembagian dengan nol
                 const avgNorm =
-                    st.avgRaw !== null
-                        ? Number((((st.avgRaw - min) / (max - min)) * 100).toFixed(2))
+                    st.avgRaw !== null && range > 0
+                        ? Number((((st.avgRaw - min) / range) * 100).toFixed(2))
                         : null;
 
                 return {

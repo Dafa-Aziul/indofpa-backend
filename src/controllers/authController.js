@@ -30,28 +30,44 @@ export const login = async (req, res, next) => {
 };
 
 
+// controllers/auth.controller.js
 export const refresh = async (req, res, next) => {
   try {
     const oldToken = req.cookies.refresh_token;
-    if (!oldToken) throw new ApiError(401, "Refresh token tidak ditemukan");
 
+    if (!oldToken) {
+      throw new ApiError(401, "Refresh token tidak ditemukan");
+    }
 
     const result = await rotateRefreshTokenService(oldToken);
-    if (!result.success) throw new ApiError(result.code, result.message);
 
+    if (!result.success) {
+      throw new ApiError(result.code, result.message);
+    }
 
+    const { accessToken, refreshToken, user } = result;
+
+    // Set refresh token baru
     res.cookie(
       "refresh_token",
-      result.newRefreshToken,
+      refreshToken,
       cookieConfig(30 * 86400000)
     );
 
-
-    return success(res, { accessToken: result.newAccessToken });
+    // RESPONSE KONSISTEN DENGAN LOGIN
+    return success(
+      res,
+      "Access token berhasil diperbarui",
+      {
+        accessToken,
+        user,
+      }
+    );
   } catch (err) {
     next(err);
   }
 };
+
 
 
 export const me = async (req, res, next) => {
@@ -67,7 +83,6 @@ export const me = async (req, res, next) => {
 export const logout = async (req, res, next) => {
   try {
     const refreshToken = req.cookies.refresh_token;
-    console.log("COOKIE REFRESH DITERIMA LOGOUT =", req.cookies.refresh_token);
     if (!refreshToken) {
       throw new ApiError(400, "Refresh token tidak ditemukan");
     }

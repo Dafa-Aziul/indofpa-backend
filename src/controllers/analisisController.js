@@ -34,7 +34,6 @@ export const getAnalisisKuesionerList = async (req, res, next) => {
 export const getAnalisis = async (req, res, next) => {
   try {
     const { kuesionerId } = req.params;
-
     // ambil filter dari query
     const filters = {
       usiaKategori: req.query.usiaKategori,

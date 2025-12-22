@@ -26,17 +26,10 @@ export const createRefreshToken = (payload, expiresIn = "7d") => {
 };
 
 export const verifyAccessToken = (token) => {
-  try {
-    return jwt.verify(token, ACCESS_SECRET);
-  } catch {
-    return null;
-  }
+  return jwt.verify(token, ACCESS_SECRET);
 };
 
 export const verifyRefreshToken = (token) => {
-  try {
-    return jwt.verify(token, REFRESH_SECRET);
-  } catch {
-    return null;
-  }
+  return jwt.verify(token, REFRESH_SECRET);
 };
+

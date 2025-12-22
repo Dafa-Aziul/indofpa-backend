@@ -30,8 +30,8 @@ export const submitKuesionerValidator = [
     .withMessage("pertanyaanId harus berupa angka"),
 
   body("jawaban.*.nilai")
-    .isInt({ min: 1, max: 5 })
-    .withMessage("nilai harus angka 1-5"),
+    .isInt({ min: 1, max: 10 })
+    .withMessage("nilai harus angka 1-10"),
 
   // Cek duplikat pertanyaan id
   body("jawaban").custom((arr) => {

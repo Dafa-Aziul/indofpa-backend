@@ -1,25 +1,17 @@
 import ApiError from "../utils/apiError.js";
 import { verifyAccessToken } from "../utils/jwt.js";
 
-
 export const authMiddleware = (req, res, next) => {
+  const header = req.headers.authorization;
+
+  if (!header || !header.startsWith("Bearer ")) {
+    return next(new ApiError(401, "TOKEN_NOT_FOUND"));
+  }
+
+  const token = header.split(" ")[1];
+
   try {
-    const header = req.headers.authorization;
-
-
-    if (!header || !header.startsWith("Bearer ")) {
-      throw new ApiError(401, "Unauthorized: Token tidak ditemukan");
-    }
-
-
-    const token = header.split(" ")[1];
     const decoded = verifyAccessToken(token);
-
-
-    if (!decoded) {
-      throw new ApiError(401, "Token tidak valid atau sudah kedaluwarsa");
-    }
-
 
     req.user = {
       userId: decoded.userId,
@@ -27,10 +19,19 @@ export const authMiddleware = (req, res, next) => {
       email: decoded.email,
     };
 
-
     next();
   } catch (err) {
-    if (err instanceof ApiError) throw err;
-    throw new ApiError(401, "Autentikasi gagal");
+    // Jika token EXP
+    if (err.name === "TokenExpiredError") {
+      return next(new ApiError(401, "TOKEN_EXPIRED"));
+    }
+
+    // Jika token INVALID
+    if (err.name === "JsonWebTokenError") {
+      return next(new ApiError(401, "TOKEN_INVALID"));
+    }
+
+    // Error lain
+    return next(new ApiError(401, "AUTH_FAILED"));
   }
 };

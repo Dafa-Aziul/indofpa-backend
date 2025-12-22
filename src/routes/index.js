@@ -11,6 +11,7 @@ import publicRoute from "./publicRoute.js";
 import monitoringRoute from "./monitoringRoute.js"
 import distribusiRoute from "./distribusiRoute.js"
 import analisisRoute from "./analisisRoute.js";
+import dashbboardRoute from "./dashboardRoute.js"
 
 const router = Router();
 
@@ -44,7 +45,7 @@ router.use("/indikator", indikatorRoute);
 // Pertanyaan
 router.use("/pertanyaan", pertanyaanRoute);
 
-//distribusi 
+//distribusi
 router.use("/distribusi", distribusiRoute);
 // public
 router.use("/public", publicRoute);
@@ -53,6 +54,8 @@ router.use("/public", publicRoute);
 router.use("/monitoring", monitoringRoute);
 
 router.use("/analisis", analisisRoute);
+
+router.use("/dashboard", dashbboardRoute)
 
 
 export default router;

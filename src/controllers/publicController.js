@@ -3,7 +3,8 @@ import {
   getPublicKuesionerService,
   submitKuesionerService,
   getPublicKuesionerListService,
-  getPublicKuesionerDetailService
+  getPublicKuesionerDetailService,
+  checkEmailDuplicateService
 } from "../services/publicService.js";
 
 
@@ -49,6 +50,23 @@ export const submitKuesioner = async (req, res, next) => {
 
     return success(res, "Jawaban berhasil dikirim", result, null, 201);
   } catch (err) {
+    next(err);
+  }
+};
+
+export const checkEmailDuplicate = async (req, res, next) => {
+  try {
+    const { email, kuesionerId } = req.query;
+
+    const isDuplicate = await checkEmailDuplicateService(email, kuesionerId);
+
+    const message = isDuplicate
+      ? "Email ini sudah pernah mengisi kuesioner ini"
+      : "Email tersedia";
+
+    return success(res, message, { isDuplicate });
+  } catch (err) {
+
     next(err);
   }
 };

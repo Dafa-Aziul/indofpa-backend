@@ -39,7 +39,7 @@ export const createDistribusiService = async (kuesionerId, data) => {
   const now = new Date();
 
   const start = data.tanggalMulai ? new Date(data.tanggalMulai) : now;
-  const end   = data.tanggalSelesai ? new Date(data.tanggalSelesai) : null;
+  const end = data.tanggalSelesai ? new Date(data.tanggalSelesai) : null;
 
   // ❌ tanggal mulai > tanggal selesai
   if (end && start > end) {
@@ -132,21 +132,29 @@ export const updateDistribusiService = async (id, data) => {
     ? new Date(data.tanggalSelesai)
     : distribusi.tanggalSelesai;
 
-  // ❌ tanggal mulai > tanggal selesai
+  // ❌ Validasi tanggal
   if (end && start > end) {
     throw new ApiError(400, "Tanggal mulai tidak boleh lebih besar dari tanggal selesai.");
   }
 
-  // ❌ tanggal selesai tidak boleh di masa lalu
   if (end && end < now) {
     throw new ApiError(400, "Tanggal selesai tidak boleh di masa lalu.");
   }
 
+  // ✅ PERBAIKAN DI SINI:
+  // Kita cek responden berdasarkan kuesionerId, karena tabel Jawaban/Responden 
+  // di schema Abang tidak punya link langsung ke distribusiId.
   if (data.tanggalMulai) {
-    throw new ApiError(
-      400,
-      "Tanggal mulai tidak bisa diubah karena sudah ada responden."
-    );
+    const hasResponden = await prisma.respondenProfile.findFirst({
+      where: { kuesionerId: distribusi.kuesionerId }
+    });
+
+    if (hasResponden) {
+      throw new ApiError(
+        400,
+        "Tanggal mulai tidak bisa diubah karena sudah ada responden yang mengisi kuesioner ini."
+      );
+    }
   }
 
   return prisma.distribusiKuesioner.update({

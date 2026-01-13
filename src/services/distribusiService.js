@@ -1,7 +1,22 @@
+// fileName: src/services/distribusiService.js
+
 import prisma from "../config/prisma.js";
 import ApiError from "../utils/apiError.js";
 import { generateAccessCode, generatePublicLink } from "../utils/generator.js";
 
+/**
+ * HELPER: Menyamakan jam, menit, detik, dan milidetik dari satu tanggal ke tanggal lain.
+ */
+const syncTime = (sourceDate, targetDate) => {
+  const synced = new Date(targetDate);
+  synced.setHours(
+    sourceDate.getHours(),
+    sourceDate.getMinutes(),
+    sourceDate.getSeconds(),
+    sourceDate.getMilliseconds()
+  );
+  return synced;
+};
 
 // ======================================================
 // GET DISTRIBUSI
@@ -19,39 +34,50 @@ export const getDistribusiService = async (kuesionerId) => {
   });
 };
 
-
-
 // ======================================================
-// CREATE DISTRIBUSI (FINAL VERSION)
+// CREATE DISTRIBUSI
 // ======================================================
 export const createDistribusiService = async (kuesionerId, data) => {
   const id = Number(kuesionerId);
+
+  // 1. Validasi Wajib Isi
+  if (!data.tanggalMulai || !data.tanggalSelesai) {
+    throw new ApiError(400, "Tanggal mulai dan tanggal selesai wajib diisi.");
+  }
 
   const kuesioner = await prisma.kuesioner.findUniqueOrThrow({
     where: { kuesionerId: id },
   });
 
-  // ❌ Tidak boleh buat distribusi jika kuesioner arsip
   if (kuesioner.status === "Arsip") {
     throw new ApiError(400, "Kuesioner arsip tidak bisa dibuatkan distribusi.");
   }
 
   const now = new Date();
+  
+  // 🕒 2. Logika Tanggal Mulai:
+  // Jika admin pilih tanggal hari ini, gunakan waktu 'sekarang' agar langsung aktif (lte: now).
+  const inputStart = new Date(data.tanggalMulai);
+  const isStartToday = inputStart.toDateString() === now.toDateString();
+  const start = isStartToday ? new Date() : inputStart;
 
-  const start = data.tanggalMulai ? new Date(data.tanggalMulai) : now;
-  const end = data.tanggalSelesai ? new Date(data.tanggalSelesai) : null;
-
-  // ❌ tanggal mulai > tanggal selesai
-  if (end && start > end) {
-    throw new ApiError(400, "Tanggal mulai tidak boleh lebih besar dari tanggal selesai.");
+  // 🕒 3. Logika Tanggal Selesai (Presisi Waktu):
+  let end = new Date(data.tanggalSelesai);
+  
+  // Jika tanggal sama, otomatis 24 jam dari waktu 'start'.
+  if (inputStart.toDateString() === end.toDateString()) {
+    end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+  } else {
+    // Jika tanggal berbeda, samakan jamnya dengan waktu 'start' agar presisi.
+    end = syncTime(start, end);
   }
 
-  // ❌ tanggal selesai tidak boleh di masa lalu
-  if (end && end < now) {
-    throw new ApiError(400, "Tanggal selesai tidak boleh di masa lalu.");
+  // ❌ 4. Validasi: Waktu berakhir tidak boleh di masa lalu dari detik ini.
+  if (end < now) {
+    throw new ApiError(400, "Waktu berakhir tidak boleh di masa lalu.");
   }
 
-  // ❌ Single wave rule: Tidak boleh ada distribusi aktif
+  // ❌ 5. Single Wave Rule: Cek distribusi aktif.
   const aktif = await prisma.distribusiKuesioner.findFirst({
     where: {
       kuesionerId: id,
@@ -73,10 +99,10 @@ export const createDistribusiService = async (kuesionerId, data) => {
   });
 
   if (aktif) {
-    throw new ApiError(400, "Masih ada distribusi aktif. Tidak dapat membuat distribusi baru.");
+    throw new ApiError(400, "Masih ada periode distribusi yang sedang aktif.");
   }
 
-  // 🔑 generate kode akses unik
+  // 🔑 6. Generate Kode Akses Unik.
   let kodeAkses = generateAccessCode(8);
   let exist = await prisma.distribusiKuesioner.findFirst({ where: { kodeAkses } });
 
@@ -87,9 +113,8 @@ export const createDistribusiService = async (kuesionerId, data) => {
 
   const urlLink = generatePublicLink(kodeAkses);
 
-  // 🚀 TRANSACTION
+  // 🚀 7. TRANSACTION
   return prisma.$transaction(async (tx) => {
-    // Jika status draft → ubah ke publish
     if (kuesioner.status === "Draft") {
       await tx.kuesioner.update({
         where: { kuesionerId: id },
@@ -110,10 +135,8 @@ export const createDistribusiService = async (kuesionerId, data) => {
   });
 };
 
-
-
 // ======================================================
-// UPDATE DISTRIBUSI (FINAL VERSION)
+// UPDATE DISTRIBUSI
 // ======================================================
 export const updateDistribusiService = async (id, data) => {
   const distribusiId = Number(id);
@@ -123,37 +146,31 @@ export const updateDistribusiService = async (id, data) => {
   });
 
   const now = new Date();
+  
+  // Gunakan data baru atau data lama jika tidak diupdate.
+  const start = data.tanggalMulai ? new Date(data.tanggalMulai) : distribusi.tanggalMulai;
+  let end = data.tanggalSelesai ? new Date(data.tanggalSelesai) : distribusi.tanggalSelesai;
 
-  const start = data.tanggalMulai
-    ? new Date(data.tanggalMulai)
-    : distribusi.tanggalMulai;
-
-  const end = data.tanggalSelesai
-    ? new Date(data.tanggalSelesai)
-    : distribusi.tanggalSelesai;
-
-  // ❌ Validasi tanggal
-  if (end && start > end) {
-    throw new ApiError(400, "Tanggal mulai tidak boleh lebih besar dari tanggal selesai.");
+  // 🕒 Terapkan Presisi Waktu & Logic 24 jam saat update.
+  if (data.tanggalMulai || data.tanggalSelesai) {
+    if (start.toDateString() === end.toDateString()) {
+      end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+    } else {
+      end = syncTime(start, end);
+    }
   }
 
-  if (end && end < now) {
-    throw new ApiError(400, "Tanggal selesai tidak boleh di masa lalu.");
+  if (end < now) {
+    throw new ApiError(400, "Waktu berakhir tidak boleh di masa lalu.");
   }
 
-  // ✅ PERBAIKAN DI SINI:
-  // Kita cek responden berdasarkan kuesionerId, karena tabel Jawaban/Responden 
-  // di schema Abang tidak punya link langsung ke distribusiId.
   if (data.tanggalMulai) {
     const hasResponden = await prisma.respondenProfile.findFirst({
       where: { kuesionerId: distribusi.kuesionerId }
     });
 
     if (hasResponden) {
-      throw new ApiError(
-        400,
-        "Tanggal mulai tidak bisa diubah karena sudah ada responden yang mengisi kuesioner ini."
-      );
+      throw new ApiError(400, "Tanggal mulai tidak bisa diubah karena kuesioner sudah mulai diisi.");
     }
   }
 
@@ -167,32 +184,25 @@ export const updateDistribusiService = async (id, data) => {
   });
 };
 
-
+// ======================================================
+// DELETE DISTRIBUSI
+// ======================================================
 export const deleteDistribusiService = async (id) => {
   const distribusiId = Number(id);
 
-  // Pastikan distribusi ada
   const distribusi = await prisma.distribusiKuesioner.findUniqueOrThrow({
     where: { distribusiId },
   });
 
-  const kuesionerId = distribusi.kuesionerId;
-
-  // CEK: Apakah sudah ada responden terkait kuesioner ini?
   const used = await prisma.respondenProfile.findFirst({
-    where: { kuesionerId },
+    where: { kuesionerId: distribusi.kuesionerId },
   });
 
   if (used) {
-    throw new ApiError(
-      400,
-      "Distribusi tidak dapat dihapus karena sudah ada responden yang mengisi kuesioner ini."
-    );
+    throw new ApiError(400, "Distribusi tidak dapat dihapus karena data responden sudah terekam.");
   }
 
-  // Hapus distribusi
   return prisma.distribusiKuesioner.delete({
     where: { distribusiId },
   });
 };
-

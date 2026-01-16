@@ -11,7 +11,7 @@ import {
 // get indikator list
 export const getIndikator = async (req, res, next) => {
   try {
-    const { variabelId } = req.params; // pakai variabelId
+    const { variabelId } = req.params; 
 
     const result = await getIndikatorService(variabelId);
 
@@ -25,7 +25,7 @@ export const getIndikator = async (req, res, next) => {
 // create indikator
 export const createIndikator = async (req, res, next) => {
   try {
-    const { variabelId } = req.params; // pakai variabelId
+    const { variabelId } = req.params;
 
     const result = await createIndikatorService(variabelId, req.body);
 
@@ -39,8 +39,7 @@ export const createIndikator = async (req, res, next) => {
 // update indikator
 export const updateIndikator = async (req, res, next) => {
   try {
-    const { id } = req.params; // id indikator
-
+    const { id } = req.params;
     const result = await updateIndikatorService(id, req.body);
 
     return success(res, "Indikator berhasil diperbarui", result);
@@ -53,8 +52,7 @@ export const updateIndikator = async (req, res, next) => {
 // delete indikator
 export const deleteIndikator = async (req, res, next) => {
   try {
-    const { id } = req.params; // id indikator
-
+    const { id } = req.params; 
     await deleteIndikatorService(id);
 
     return success(res, "Indikator berhasil dihapus");

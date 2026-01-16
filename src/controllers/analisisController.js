@@ -7,9 +7,7 @@ import {
 } from "../services/analisisService.js";
 
 
-// ===============================
 // GET LIST — Kuesioner siap analisis
-// ===============================
 export const getAnalisisKuesionerList = async (req, res, next) => {
   try {
     const { search, kategori, page = 1, limit = 10 } = req.query;
@@ -28,9 +26,7 @@ export const getAnalisisKuesionerList = async (req, res, next) => {
   }
 };
 
-// ===============================
 // GET ANALISIS — detail analisis kuesioner
-// ===============================
 export const getAnalisis = async (req, res, next) => {
   try {
     const { kuesionerId } = req.params;
@@ -51,9 +47,7 @@ export const getAnalisis = async (req, res, next) => {
   }
 };
 
-// ===============================
 // UPDATE ANALISIS CONFIG (range interpretasi skor)
-// ===============================
 export const updateAnalisisConfig = async (req, res, next) => {
   try {
     const { kuesionerId } = req.params;

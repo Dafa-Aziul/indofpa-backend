@@ -1,18 +1,13 @@
 import { param, body } from "express-validator";
 import { validate } from "../validate.js";
 
-/* ======================================================
-   VALIDATOR : GET LIST KUESIONER UNTUK ANALISIS
-   (tidak butuh params/body)
-====================================================== */
+// VALIDATOR : GET LIST KUESIONER UNTUK ANALISIS
 export const getAnalisisKuesionerListValidator = [
   validate
 ];
 
 
-/* ======================================================
-   VALIDATOR : GET ANALISIS KUESIONER
-====================================================== */
+// VALIDATOR : GET ANALISIS KUESIONER
 export const getAnalisisValidator = [
   param("kuesionerId")
     .notEmpty().withMessage("kuesionerId wajib diisi")
@@ -22,11 +17,8 @@ export const getAnalisisValidator = [
 ];
 
 
-/* ======================================================
-   VALIDATOR : UPDATE ANALISIS CONFIG
-   - config disimpan dalam kolom JSON
-   - format bebas, tapi harus object
-====================================================== */
+
+// VALIDATOR : UPDATE ANALISIS CONFIG
 export const updateAnalisisConfigValidator = [
 
   param("kuesionerId")

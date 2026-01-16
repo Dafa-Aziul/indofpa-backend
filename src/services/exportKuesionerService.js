@@ -1,7 +1,6 @@
 import ExcelJS from "exceljs";
 import prisma from "../config/prisma.js";
 
-// Import utilitas style (Pastikan file excelStyle.js tersedia di folder utils)
 import {
   headerStyle,
   styleRow,
@@ -9,9 +8,6 @@ import {
   autosizeColumns
 } from "../utils/excelStyle.js";
 
-/**
- * HELPER: Konversi Enum Database ke Teks Bahasa Indonesia Formal
- */
 const formatUsia = (val) => {
   const map = {
     USIA_18_24: "18-24 Tahun",
@@ -80,9 +76,7 @@ export const generateKuesionerExcelService = async (kuesionerId) => {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "IndoFPA System";
 
-  // ==========================================
   // SHEET 1: RINGKASAN UMUM
-  // ==========================================
   const s1 = workbook.addWorksheet("1. Ringkasan Umum");
   s1.addRow(["IDENTITAS KUESIONER"]).font = { bold: true, size: 14 };
   s1.addRow([]);
@@ -104,9 +98,7 @@ export const generateKuesionerExcelService = async (kuesionerId) => {
   });
   autosizeColumns(s1);
 
-  // ==========================================
   // SHEET 2: STRUKTUR INSTRUMEN (3 TABEL)
-  // ==========================================
   const s2 = workbook.addWorksheet("2. Struktur Instrumen");
 
   // --- TABEL A: DAFTAR VARIABEL ---
@@ -171,9 +163,7 @@ export const generateKuesionerExcelService = async (kuesionerId) => {
   s2.getColumn(3).width = 75;
   autosizeColumns(s2);
 
-  // ==========================================
   // SHEET 3: PROFIL RESPONDEN
-  // ==========================================
   const s3 = workbook.addWorksheet("3. Profil Responden");
   const h3 = s3.addRow(["No", "Nama", "Email", "Usia", "Gender", "Pendidikan", "Agama", "Pekerjaan"]);
   styleRow(h3, headerStyle);
@@ -193,9 +183,7 @@ export const generateKuesionerExcelService = async (kuesionerId) => {
   });
   autosizeColumns(s3);
 
-  // ==========================================
   // SHEET 4: JAWABAN RESPONDEN (MATRIKS)
-  // ==========================================
   const s4 = workbook.addWorksheet("4. Jawaban Responden");
   const qFlattened = [];
   kuesioner.variabel.forEach(v => v.indikator.forEach(ind => ind.pertanyaan.forEach(p => qFlattened.push({ id: p.pertanyaanId, code: ind.kode }))));

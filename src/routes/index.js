@@ -15,10 +15,6 @@ import dashbboardRoute from "./dashboardRoute.js"
 
 const router = Router();
 
-// ===============================
-// ROUTE GROUPING
-// ===============================
-
 router.get("/", (req, res) => {
   res.json({
     status: "success",

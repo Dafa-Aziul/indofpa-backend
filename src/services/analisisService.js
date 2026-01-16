@@ -26,9 +26,6 @@ const validateAnalisisConfig = (config) => {
 };
 
 
-/**
- * Ambil daftar kuesioner yang SIAP dianalisis
- */
 export const getAnalisisKuesionerListService = async ({
     search,
     kategori,
@@ -80,11 +77,7 @@ export const getAnalisisKuesionerListService = async ({
     };
 };
 
-/**
- * ==========================
- *     GET ANALISIS DETAIL
- * ==========================
- */
+
 export const getAnalisisService = async (kuesionerId, filters = {}) => {
 
     kuesionerId = Number(kuesionerId);
@@ -106,43 +99,30 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
 
     validateAnalisisConfig(kues.analisisConfig);
 
-    // ===================================
-    // ✨ FINAL PERBAIKAN: PRE-PROCESSING FILTER (Menangani format key=val&key=val)
-    // ===================================
-    // Asumsi: Frontend mengirim key normal. Express mem-parsing key berulang menjadi array.
-    // Kita pastikan semua nilai yang diterima (array atau string tunggal) menjadi Array<string> yang bersih.
 
     const cleanFilters = {};
     const filterKeys = ['usiaKategori', 'jenisKelamin', 'tingkatPendidikan', 'agama', 'pekerjaan'];
 
     filterKeys.forEach(key => {
-        const value = filters[key]; // Langsung ambil dari key normal
+        const value = filters[key]; 
 
         if (value) {
             let processedValue = value;
 
-            // Jika nilai bukan array (biasanya filter single-select), ubah menjadi array tunggal.
             if (!Array.isArray(processedValue)) {
                 processedValue = [processedValue];
             }
 
-            // Simpan hanya jika array tidak kosong, dan pastikan elemennya string.
+           
             if (processedValue.length > 0) {
                 cleanFilters[key] = processedValue.map(String);
             }
         }
     });
 
-    // ============================
-    // BUILD FILTER RESPONDEN
-    // ============================
-    // Menggunakan 'cleanFilters' yang sudah dijamin array of String atau undefined.
 
     const respondenWhere = {
         kuesionerId,
-
-        // Gunakan cleanFilters.field dan operator { in: ... }
-        // cleanFilters[key] dijamin berupa Array<string> (atau undefined)
         ...(cleanFilters.usiaKategori && { usiaKategori: { in: cleanFilters.usiaKategori } }),
         ...(cleanFilters.jenisKelamin && { jenisKelamin: { in: cleanFilters.jenisKelamin } }),
         ...(cleanFilters.tingkatPendidikan && { tingkatPendidikan: { in: cleanFilters.tingkatPendidikan } }),
@@ -159,7 +139,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
 
     const totalResponden = respondenIds.length;
 
-    // kalau tidak ada responden yang cocok → return kosong
+  
     if (totalResponden === 0) {
         return {
             kuesioner: kues,
@@ -172,9 +152,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
         };
     }
 
-    // ====================================
-    // AMBIL VARIABEL, INDIKATOR, PERTANYAAN
-    // ====================================
+
 
     const variabel = await prisma.variabel.findMany({
         where: { kuesionerId },
@@ -194,9 +172,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
     const pIds = pertanyaan.map(p => p.pertanyaanId);
     const indIds = indikator.map(i => i.indikatorId);
 
-    // ============================
     // STATISTIK PER PERTANYAAN
-    // ============================
 
     const stats = await prisma.jawaban.groupBy({
         by: ["pertanyaanId"],
@@ -216,9 +192,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
         });
     });
 
-    // ============================
     // SCORE NORMALISASI PER INDIKATOR
-    // ============================
 
     const indikatorScore = await prisma.respondenScore.groupBy({
         by: ["indikatorId"],
@@ -240,9 +214,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
         });
     });
 
-    // ============================
     // FORMAT PERTANYAAN
-    // ============================
 
     const pertanyaanResponse = indikator.map(ind => {
         const list = pertanyaan.filter(p => p.indikatorId === ind.indikatorId);
@@ -258,8 +230,6 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
 
                 const { min, max } = extractScale(p.labelSkala);
                 const range = max - min;
-                
-                // ✨ FINAL PERBAIKAN: Pencegahan pembagian dengan nol
                 const avgNorm =
                     st.avgRaw !== null && range > 0
                         ? Number((((st.avgRaw - min) / range) * 100).toFixed(2))
@@ -281,9 +251,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
         };
     });
 
-    // ============================
     // HASIL PER INDIKATOR
-    // ============================
 
     const indikatorResult = indikator.map(i => {
         const sc = indScoreMap.get(i.indikatorId) || {
@@ -303,10 +271,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
         };
     });
 
-    // ============================
     // HASIL PER VARIABEL
-    // ============================
-
     const variabelResult = variabel.map(v => {
         const inds = indikatorResult.filter(i => i.variabelId === v.variabelId);
         const valid = inds.filter(i => i.avgNormalized !== null);
@@ -331,10 +296,7 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
         };
     });
 
-    // ============================
     // OVERALL
-    // ============================
-
     const validVars = variabelResult.filter(v => v.avgNormalized !== null);
     const overall =
         validVars.length > 0
@@ -359,15 +321,10 @@ export const getAnalisisService = async (kuesionerId, filters = {}) => {
     };
 };
 
-/**
- * Update konfigurasi analisis (interpretasi)
- */
 export const updateAnalisisConfigService = async (kuesionerId, config) => {
     kuesionerId = Number(kuesionerId);
 
     await prisma.kuesioner.findUniqueOrThrow({ where: { kuesionerId } });
-
-    // pastikan format benar sebelum simpan
     validateAnalisisConfig(config);
 
     return prisma.kuesioner.update({

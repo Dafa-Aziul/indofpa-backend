@@ -10,11 +10,10 @@ export const getMonitoringListService = async ({
 }) => {
     const skip = (page - 1) * limit;
 
-    // ========== FILTER BUILDER ==========
     const where = {
         AND: [
             search
-                ? { judul: { contains: search } } // MySQL collation → already insensitive
+                ? { judul: { contains: search } } 
                 : undefined,
 
             status ? { status } : undefined,
@@ -23,7 +22,6 @@ export const getMonitoringListService = async ({
         ].filter(Boolean),
     };
 
-    // ========== QUERY DATA ==========
     const [items, total] = await Promise.all([
         prisma.kuesioner.findMany({
             where,
@@ -43,14 +41,13 @@ export const getMonitoringListService = async ({
         prisma.kuesioner.count({ where }),
     ]);
 
-    // ========== FORMAT OUTPUT ==========
     const formatted = items.map((k) => {
         const masuk = k._count.responden;
         const target = k.targetResponden ?? 0;
 
         const progress =
             target > 0
-                ? Number(((masuk / target) * 100).toFixed(1)) // min 1 digit koma
+                ? Number(((masuk / target) * 100).toFixed(1)) 
                 : null;
 
         return {
@@ -65,7 +62,6 @@ export const getMonitoringListService = async ({
         };
     });
 
-    // ========== RETURN STRUCTURE ==========
     return {
         items: formatted,
         meta: {
@@ -79,7 +75,6 @@ export const getMonitoringListService = async ({
                 kategori: kategori || null,
             },
 
-            // UI helper metric: berapa kuesioner status Publish
             totalActive: formatted.filter((k) => k.status === "Publish").length,
         },
     };
@@ -88,22 +83,17 @@ export const getMonitoringListService = async ({
 
 
 
-// fileName: src/features/monitoring/detail/services.ts (atau lokasi services Anda)
 
-// Asumsi Anda sudah mengimpor prisma instance dan tipe data yang diperlukan.
 
 export const getRespondenListService = async (
     kuesionerId,
     { page = 1, limit = 20, search }
 ) => {
     const id = Number(kuesionerId);
-    // Pastikan limit dan page adalah angka yang valid
     const parsedLimit = Number(limit) || 20;
     const parsedPage = Number(page) || 1;
     const skip = (parsedPage - 1) * parsedLimit;
 
-    // 🔍 Ambil data kuesioner + distribusi
-    // Menggunakan 'select' untuk semua field, termasuk relasi
     const kuesionerRaw = await prisma.kuesioner.findUniqueOrThrow({
         where: { kuesionerId: id },
         select: {
@@ -114,30 +104,24 @@ export const getRespondenListService = async (
             createdAt: true,
             kategori: { select: { nama: true } },
             _count: { select: { responden: true } },
-            // ✅ PERBAIKAN: PINDAHKAN RELASI 'distribusi' KE DALAM SELECT
             distribusi: {
                 select: {
                     tanggalMulai: true,
                     tanggalSelesai: true,
                 },
-                // Jika ada lebih dari satu distribusi, ambil yang paling awal/akhir
                 orderBy: { tanggalMulai: 'asc' },
             }
         },
-        // ❌ BLOK 'include' dihilangkan karena sudah digantikan oleh 'select'
     });
 
     const masuk = kuesionerRaw._count.responden;
     const target = kuesionerRaw.targetResponden || 0;
 
-    // 🎯 Hitung progress pencapaian
     const progress =
         target > 0
             ? Number(((masuk / target) * 100).toFixed(1))
-            : 0; // Menggunakan 0% jika target 0
+            : 0;
 
-    // 📅 Ekstrak Tanggal Mulai dan Berakhir dari Distribusi
-    // Asumsi: Ambil tanggal mulai dari distribusi pertama dan tanggal selesai dari distribusi terakhir (jika diurutkan)
     const distribusiTerakhir = kuesionerRaw.distribusi.length > 0
         ? kuesionerRaw.distribusi[kuesionerRaw.distribusi.length - 1]
         : null;
@@ -146,13 +130,11 @@ export const getRespondenListService = async (
     const endDate = distribusiTerakhir?.tanggalSelesai;
 
 
-    // 🔍 Filter responden list
     const where = {
         kuesionerId: id,
         ...(search
             ? {
                 OR: [
-                    // Menambahkan mode: 'insensitive' untuk pencarian yang lebih baik
                     { nama: { contains: search, mode: 'insensitive' } },
                     { email: { contains: search, mode: 'insensitive' } },
                 ],
@@ -160,7 +142,6 @@ export const getRespondenListService = async (
             : {}),
     };
 
-    // ⏱️ Ambil daftar responden dan total count secara paralel
     const [rawItems, total] = await Promise.all([
         prisma.respondenProfile.findMany({
             where,
@@ -178,12 +159,11 @@ export const getRespondenListService = async (
         prisma.respondenProfile.count({ where }),
     ]);
 
-    // ⚙️ Map untuk menghitung durasi
     const items = rawItems.map((r) => {
         let durasiDetik = null;
 
         if (r.waktuMulai && r.waktuSelesai) {
-            // Menggunakan .getTime() untuk perhitungan yang lebih pasti
+
             durasiDetik = Math.round(
                 (new Date(r.waktuSelesai).getTime() - new Date(r.waktuMulai).getTime()) / 1000
             );
@@ -199,10 +179,10 @@ export const getRespondenListService = async (
         };
     });
 
-    // 📤 Mengembalikan data yang distrukturkan
+
     return {
         kuesioner: {
-            // Menggunakan properti dari kuesionerRaw
+
             kuesionerId: kuesionerRaw.kuesionerId,
             judul: kuesionerRaw.judul,
             status: kuesionerRaw.status,
@@ -210,11 +190,11 @@ export const getRespondenListService = async (
             createdAt: kuesionerRaw.createdAt,
             kategori: kuesionerRaw.kategori,
 
-            // ✅ Properti Hasil Komputasi
+
             totalResponden: masuk,
             progress,
-            startDate, // Tanggal Mulai dari Distribusi
-            endDate, // Tanggal Selesai dari Distribusi
+            startDate,
+            endDate,
         },
         items,
         meta: {

@@ -18,10 +18,6 @@ import { authMiddleware } from "../middlewares/auth.js";
 
 const router = Router({ mergeParams: true });
 
-/* ============================================
-   NESTED ROUTE (LIST & CREATE)
-   /kuesioner/:kuesionerId/distribusi
-   ============================================ */
 router.get(
   "/",
   authMiddleware,
@@ -37,10 +33,6 @@ router.post(
 );
 
 
-/* ============================================
-   DIRECT ROUTE (UPDATE & DELETE)
-   /distribusi/:id
-   ============================================ */
 router.patch(
   "/:id",
   authMiddleware,

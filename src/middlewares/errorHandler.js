@@ -5,22 +5,14 @@ import ApiError from "../utils/apiError.js";
 const isDev = process.env.NODE_ENV !== "production";
 
 export const errorHandler = (err, req, res, next) => {
-  //
-  // ============================================
   // LOGGING
-  // ============================================
-  //
   if (isDev) {
     console.error("🔥 DEV ERROR:", err);
   } else {
     console.error("🔥 PROD ERROR:", err.message);
   }
 
-  //
-  // ============================================
   // JSON PARSE ERROR
-  // ============================================
-  //
   if (err instanceof SyntaxError && err.type === "entity.parse.failed") {
     return res.status(400).json({
       success: false,
@@ -29,11 +21,7 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  //
-  // ============================================
   // JWT ERRORS
-  // ============================================
-  //
   if (err.name === "JsonWebTokenError") {
     return res.status(401).json({
       success: false,
@@ -50,11 +38,7 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  //
-  // ============================================
   // MULTER ERRORS
-  // ============================================
-  //
   if (err instanceof multer.MulterError) {
     return res.status(400).json({
       success: false,
@@ -63,11 +47,7 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  //
-  // ============================================
   // CUSTOM API ERROR (PRIORITAS SEBELUM PRISMA)
-  // ============================================
-  //
   if (err instanceof ApiError) {
     return res.status(err.status).json({
       success: false,
@@ -76,11 +56,7 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
-  //
-  // ============================================
   // PRISMA KNOWN ERRORS
-  // ============================================
-  //
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     const prismaDetail = {
       code: err.code,
@@ -134,11 +110,7 @@ export const errorHandler = (err, req, res, next) => {
     }
   }
 
-  //
-  // ============================================
   // PRISMA VALIDATION ERROR (query invalid)
-  // ============================================
-  //
   if (err instanceof Prisma.PrismaClientValidationError) {
     return res.status(422).json({
       success: false,
@@ -146,12 +118,6 @@ export const errorHandler = (err, req, res, next) => {
       errors: isDev ? err.message : null,
     });
   }
-
-  //
-  // ============================================
-  // UNKNOWN SERVER ERROR
-  // ============================================
-  //
   return res.status(500).json({
     success: false,
     message: "Terjadi kesalahan pada server",

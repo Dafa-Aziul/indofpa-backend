@@ -1,7 +1,3 @@
-// ===============================================
-//  Excel Style Utilities (Centralized Styling)
-// ===============================================
-
 export const headerStyle = {
   font: { bold: true },
   alignment: { horizontal: "center", vertical: "middle" },

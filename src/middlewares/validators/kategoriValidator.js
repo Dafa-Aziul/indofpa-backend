@@ -17,7 +17,7 @@ export const updateKategoriValidator = [
     .isInt().withMessage("ID tidak valid"),
 
   body("nama")
-    .optional() // boleh kosong, tapi kalau ada harus valid
+    .optional() 
     .notEmpty().withMessage("Nama kategori tidak boleh kosong")
     .isString().withMessage("Nama kategori harus berupa teks")
     .trim()

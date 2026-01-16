@@ -1,7 +1,6 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-// Generate DATABASE_URL otomatis jika belum ada
 import "./src/config/loadEnv.js";
 
 import app from "./src/app.js";
@@ -9,7 +8,6 @@ import os from "os";
 
 const PORT = process.env.PORT || 5000;
 
-// Dapatkan IP local (LAN)
 function getLocalIP() {
   const nets = os.networkInterfaces();
   for (const name of Object.keys(nets)) {

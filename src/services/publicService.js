@@ -53,7 +53,7 @@ export const getPublicKuesionerDetailService = async (kuesionerId) => {
         }
 
       },
-      distribusi: { // Menghapus kata 'select :' dan menggantinya dengan objek Prisma yang benar
+      distribusi: { 
         select: {
           kodeAkses: true,
         },
@@ -131,7 +131,7 @@ export const getPublicKuesionerService = async (kodeAkses) => {
 
 // SUBMIT KUESIONER PUBLIC
 export const submitKuesionerService = async (kodeAkses, profile, jawabanList) => {
-  // 1) Cari distribusi
+  // Cari distribusi
   const distribusi = await prisma.distribusiKuesioner.findFirst({
     where: { kodeAkses },
     include: { kuesioner: true },
@@ -150,7 +150,7 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
 
   const kuesionerId = kuesioner.kuesionerId;
 
-  // 2) Ambil semua pertanyaan kuesioner ini LENGKAP dengan labelSkala
+  // Ambil semua pertanyaan kuesioner 
   const pertanyaanAll = await prisma.pertanyaan.findMany({
     where: {
       indikator: { variabel: { kuesionerId: Number(kuesionerId) } }
@@ -158,7 +158,7 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
     select: {
       pertanyaanId: true,
       indikatorId: true,
-      labelSkala: true // Penting untuk validasi & normalisasi dinamis
+      labelSkala: true
     }
   });
 
@@ -167,18 +167,15 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
     throw new ApiError(400, `Semua pertanyaan harus dijawab (${jawabanList.length}/${totalPertanyaan})`);
   }
 
-  // Map untuk mempermudah pencarian data asli pertanyaan
   const mapPertanyaan = new Map();
   pertanyaanAll.forEach(p => mapPertanyaan.set(p.pertanyaanId, p));
 
-  // --- VALIDASI JAWABAN DINAMIS ---
   for (const a of jawabanList) {
     const pId = Number(a.pertanyaanId);
     const dataAsli = mapPertanyaan.get(pId);
 
     if (!dataAsli) throw new ApiError(400, `Pertanyaan ID ${pId} tidak valid`);
 
-    // Cari batas maksimal skala dari labelSkala (misal: "1" s/d "6")
     const keysSkala = Object.keys(dataAsli.labelSkala || {}).map(Number);
     const maxSkalaTersedia = Math.max(...keysSkala) || 5;
 
@@ -188,7 +185,6 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
     }
   }
 
-  // 3) Validasi email unik
   if (profile.email) {
     const exist = await prisma.respondenProfile.findFirst({
       where: { email: profile.email, kuesionerId },
@@ -196,7 +192,6 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
     if (exist) throw new ApiError(400, "Email sudah digunakan pada kuesioner ini");
   }
 
-  // 4) Transaction: create responden, jawaban, score
   return await prisma.$transaction(async (tx) => {
     const responden = await tx.respondenProfile.create({
       data: {
@@ -225,7 +220,7 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
       });
     }
 
-    // --- HITUNG SCORE PER INDIKATOR (DINAMIS) ---
+    // hitung skor per indikator (DINAMIS)
     const indikatorMap = new Map();
     jawabanList.forEach(a => {
       const pId = Number(a.pertanyaanId);
@@ -238,7 +233,7 @@ export const submitKuesionerService = async (kodeAkses, profile, jawabanList) =>
     for (const [indikatorId, listNilai] of indikatorMap.entries()) {
       const raw = listNilai.reduce((s, x) => s + x, 0) / listNilai.length;
 
-      // Ambil max scale dari salah satu pertanyaan di indikator ini
+      // Ambil max scale
       const contohP = pertanyaanAll.find(p => p.indikatorId === indikatorId);
       const keysSkala = Object.keys(contohP.labelSkala || {}).map(Number);
       const maxScale = Math.max(...keysSkala) || 5;
@@ -279,10 +274,9 @@ export const checkEmailDuplicateService = async (email, kuesionerId) => {
       },
     },
     select: {
-      respondenId: true, // Hanya ambil ID saja agar query lebih ringan
+      respondenId: true, 
     },
   });
 
-  // Jika data ditemukan, berarti duplikat (true)
   return !!existingResponden;
 };

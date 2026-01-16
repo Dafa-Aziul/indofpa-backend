@@ -2,9 +2,7 @@ import prisma from "../config/prisma.js";
 import ApiError from "../utils/apiError.js";
 
 
-// ======================================================
 // GET KATEGORI (list + search + pagination)
-// ======================================================
 export const getKategoriService = async ({ search, page, limit }) => {
   const skip = (page - 1) * limit;
 
@@ -40,9 +38,7 @@ export const getKategoriService = async ({ search, page, limit }) => {
 
 
 
-// ======================================================
 // CREATE KATEGORI
-// ======================================================
 export const createKategoriService = async ({ nama }) => {
   const exist = await prisma.kategori.findFirst({
     where: { nama: nama.trim() },
@@ -58,18 +54,15 @@ export const createKategoriService = async ({ nama }) => {
 };
 
 
-// ======================================================
 // UPDATE KATEGORI
-// ======================================================
 export const updateKategoriService = async (id, { nama }) => {
   const kategoriId = Number(id);
 
-  // cek kategori ada
   await prisma.kategori.findUniqueOrThrow({
     where: { kategoriId },
   });
 
-  // cek nama duplikat
+
   const exist = await prisma.kategori.findFirst({
     where: {
       nama: nama.trim(),
@@ -88,19 +81,15 @@ export const updateKategoriService = async (id, { nama }) => {
 };
 
 
-// ======================================================
 // DELETE KATEGORI (WAJIB TRANSACTION)
-// ======================================================
 export const deleteKategoriService = async (id) => {
   return prisma.$transaction(async (tx) => {
     const kategoriId = Number(id);
 
-    // cek kategori ada
     await tx.kategori.findUniqueOrThrow({
       where: { kategoriId },
     });
 
-    // cek relasi (dipakai kuesioner?)
     const used = await tx.kuesioner.findFirst({
       where: { kategoriId },
     });
@@ -112,7 +101,6 @@ export const deleteKategoriService = async (id) => {
       );
     }
 
-    // hapus kategori
     return tx.kategori.delete({
       where: { kategoriId },
     });

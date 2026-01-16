@@ -6,9 +6,7 @@ export const getDashboardService = async () => {
     const startDate = new Date();
     startDate.setDate(today.getDate() - 30);
 
-    // ============================
     // Parallel Query (FAST)
-    // ============================
     const [
         totalKuesioner,
         kuesionerDraft,
@@ -52,9 +50,7 @@ export const getDashboardService = async () => {
         })
     ]);
 
-    // ============================
     // Generate per hari (30 hari)
-    // ============================
     const dailyStats = [];
     for (let i = 0; i <= 30; i++) {
         const date = new Date();
@@ -74,9 +70,7 @@ export const getDashboardService = async () => {
 
     dailyStats.reverse();
 
-    // ============================
     // Build response object
-    // ============================
     return {
         summary: {
             totalKuesioner,

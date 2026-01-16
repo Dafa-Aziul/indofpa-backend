@@ -2,18 +2,14 @@ import prisma from "../config/prisma.js";
 import ApiError from "../utils/apiError.js";
 
 
-/**
- * GET semua pertanyaan per indikator
- */
+// GET semua pertanyaan per indikator
 export const getPertanyaanService = async (indikatorId) => {
   const id = Number(indikatorId);
 
-  // cek indikator
   await prisma.indikator.findUniqueOrThrow({
     where: { indikatorId: id },
   });
 
-  // ambil pertanyaan
   return prisma.pertanyaan.findMany({
     where: { indikatorId: id },
     orderBy: { urutan: "asc" },
@@ -31,13 +27,10 @@ export const getPertanyaanService = async (indikatorId) => {
 
 
 
-/**
- * CREATE pertanyaan
- */
+// CREATE pertanyaan
 export const createPertanyaanService = async (indikatorId, data) => {
   const id = Number(indikatorId);
 
-  // ambil indikator + variabel + kuesioner
   const indikator = await prisma.indikator.findUniqueOrThrow({
     where: { indikatorId: id },
     include: {
@@ -47,17 +40,14 @@ export const createPertanyaanService = async (indikatorId, data) => {
     },
   });
 
-  // cek status draft
   if (indikator.variabel.kuesioner.status !== "Draft") {
     throw new ApiError(400, "Pertanyaan hanya boleh dibuat jika kuesioner Draft");
   }
 
-  // validasi urutan
   if (data.urutan == null || Number.isNaN(Number(data.urutan))) {
     throw new ApiError(400, "Urutan pertanyaan wajib berupa angka");
   }
 
-  // cek urutan duplikat
   const existOrder = await prisma.pertanyaan.findFirst({
     where: { indikatorId: id, urutan: Number(data.urutan) },
   });
@@ -66,7 +56,6 @@ export const createPertanyaanService = async (indikatorId, data) => {
     throw new ApiError(400, "Urutan sudah digunakan");
   }
 
-  // payload
   const payload = {
     indikatorId: id,
     teksPertanyaan: String(data.teksPertanyaan || "").trim(),
@@ -74,7 +63,6 @@ export const createPertanyaanService = async (indikatorId, data) => {
     labelSkala: null,
   };
 
-  // validasi labelSkala
   if (data.labelSkala !== undefined) {
     if (typeof data.labelSkala !== "object" || data.labelSkala === null || Array.isArray(data.labelSkala)) {
       throw new ApiError(400, "labelSkala harus berupa object JSON");
@@ -87,13 +75,11 @@ export const createPertanyaanService = async (indikatorId, data) => {
 
 
 
-/**
- * UPDATE pertanyaan
- */
+
+ // UPDATE pertanyaan
 export const updatePertanyaanService = async (id, data) => {
   const pertanyaanId = Number(id);
 
-  // ambil pertanyaan + indikator + variabel + kuesioner
   const pertanyaan = await prisma.pertanyaan.findUniqueOrThrow({
     where: { pertanyaanId },
     include: {
@@ -105,26 +91,22 @@ export const updatePertanyaanService = async (id, data) => {
     },
   });
 
-  // hanya Draft
   if (pertanyaan.indikator.variabel.kuesioner.status !== "Draft") {
     throw new ApiError(400, "Pertanyaan hanya bisa diupdate jika kuesioner Draft");
   }
 
   const payload = {};
 
-  // update teks
   if (data.teksPertanyaan !== undefined) {
     payload.teksPertanyaan = String(data.teksPertanyaan).trim();
   }
 
-  // update urutan
   if (data.urutan !== undefined) {
     const newUrutan = Number(data.urutan);
     if (Number.isNaN(newUrutan) || newUrutan < 1) {
       throw new ApiError(400, "Urutan tidak valid");
     }
 
-    // cek bentrok urutan
     const existOrder = await prisma.pertanyaan.findFirst({
       where: {
         indikatorId: pertanyaan.indikatorId,
@@ -138,7 +120,6 @@ export const updatePertanyaanService = async (id, data) => {
     payload.urutan = newUrutan;
   }
 
-  // update labelSkala
   if (data.labelSkala !== undefined) {
     if (data.labelSkala === null) {
       payload.labelSkala = null;
@@ -150,7 +131,7 @@ export const updatePertanyaanService = async (id, data) => {
   }
 
   if (Object.keys(payload).length === 0) {
-    return pertanyaan; // tidak ada perubahan
+    return pertanyaan; 
   }
 
   return prisma.pertanyaan.update({
@@ -161,9 +142,9 @@ export const updatePertanyaanService = async (id, data) => {
 
 
 
-/**
- * DELETE pertanyaan
- */
+
+ //DELETE pertanyaan
+ 
 export const deletePertanyaanService = async (id) => {
   const pertanyaanId = Number(id);
 
@@ -179,12 +160,10 @@ export const deletePertanyaanService = async (id) => {
       },
     });
 
-    // cek status draft
     if (pertanyaan.indikator.variabel.kuesioner.status !== "Draft") {
       throw new ApiError(400, "Pertanyaan hanya bisa dihapus jika kuesioner Draft");
     }
 
-    // cek jawaban
     const hasJawaban = await tx.jawaban.findFirst({
       where: { pertanyaanId },
     });

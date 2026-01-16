@@ -5,7 +5,6 @@ const ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 const ISSUER = process.env.JWT_ISSUER || "your-app";
 
-// BEST PRACTICE: Access token hanya 15 menit
 export const createAccessToken = (payload, expiresIn = "15m") => {
   return jwt.sign(
     { ...payload },
@@ -14,7 +13,6 @@ export const createAccessToken = (payload, expiresIn = "15m") => {
   );
 };
 
-// BEST PRACTICE: Refresh token 7 hari, rotate
 export const createRefreshToken = (payload, expiresIn = "7d") => {
   const jti = crypto.randomUUID();
   const token = jwt.sign(

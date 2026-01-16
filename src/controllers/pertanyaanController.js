@@ -6,9 +6,7 @@ import {
   deletePertanyaanService,
 } from "../services/pertanyaanService.js";
 
-/**
- * GET: Ambil daftar pertanyaan dalam indikator
- */
+// GET: Ambil daftar pertanyaan berdasarkan indikatorId
 export const getPertanyaan = async (req, res, next) => {
   try {
     const { indikatorId } = req.params;
@@ -23,9 +21,7 @@ export const getPertanyaan = async (req, res, next) => {
 };
 
 
-/**
- * POST: Tambah pertanyaan baru
- */
+// POST: Tambah pertanyaan baru ke indikator
 export const createPertanyaan = async (req, res, next) => {
   try {
     const { indikatorId } = req.params;
@@ -41,9 +37,7 @@ export const createPertanyaan = async (req, res, next) => {
 };
 
 
-/**
- * PATCH: Update pertanyaan
- */
+// PATCH: Update pertanyaan
 export const updatePertanyaan = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -59,9 +53,7 @@ export const updatePertanyaan = async (req, res, next) => {
 };
 
 
-/**
- * DELETE: Hapus pertanyaan
- */
+// DELETE: Hapus pertanyaan
 export const deletePertanyaan = async (req, res, next) => {
   try {
     const { id } = req.params;

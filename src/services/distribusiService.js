@@ -18,9 +18,7 @@ const syncTime = (sourceDate, targetDate) => {
   return synced;
 };
 
-// ======================================================
 // GET DISTRIBUSI
-// ======================================================
 export const getDistribusiService = async (kuesionerId) => {
   const id = Number(kuesionerId);
 
@@ -34,13 +32,10 @@ export const getDistribusiService = async (kuesionerId) => {
   });
 };
 
-// ======================================================
 // CREATE DISTRIBUSI
-// ======================================================
 export const createDistribusiService = async (kuesionerId, data) => {
   const id = Number(kuesionerId);
 
-  // 1. Validasi Wajib Isi
   if (!data.tanggalMulai || !data.tanggalSelesai) {
     throw new ApiError(400, "Tanggal mulai dan tanggal selesai wajib diisi.");
   }
@@ -54,30 +49,23 @@ export const createDistribusiService = async (kuesionerId, data) => {
   }
 
   const now = new Date();
-  
-  // 🕒 2. Logika Tanggal Mulai:
-  // Jika admin pilih tanggal hari ini, gunakan waktu 'sekarang' agar langsung aktif (lte: now).
+
   const inputStart = new Date(data.tanggalMulai);
   const isStartToday = inputStart.toDateString() === now.toDateString();
   const start = isStartToday ? new Date() : inputStart;
 
-  // 🕒 3. Logika Tanggal Selesai (Presisi Waktu):
   let end = new Date(data.tanggalSelesai);
-  
-  // Jika tanggal sama, otomatis 24 jam dari waktu 'start'.
+
   if (inputStart.toDateString() === end.toDateString()) {
     end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
   } else {
-    // Jika tanggal berbeda, samakan jamnya dengan waktu 'start' agar presisi.
     end = syncTime(start, end);
   }
 
-  // ❌ 4. Validasi: Waktu berakhir tidak boleh di masa lalu dari detik ini.
   if (end < now) {
     throw new ApiError(400, "Waktu berakhir tidak boleh di masa lalu.");
   }
 
-  // ❌ 5. Single Wave Rule: Cek distribusi aktif.
   const aktif = await prisma.distribusiKuesioner.findFirst({
     where: {
       kuesionerId: id,
@@ -102,7 +90,7 @@ export const createDistribusiService = async (kuesionerId, data) => {
     throw new ApiError(400, "Masih ada periode distribusi yang sedang aktif.");
   }
 
-  // 🔑 6. Generate Kode Akses Unik.
+  
   let kodeAkses = generateAccessCode(8);
   let exist = await prisma.distribusiKuesioner.findFirst({ where: { kodeAkses } });
 
@@ -113,7 +101,6 @@ export const createDistribusiService = async (kuesionerId, data) => {
 
   const urlLink = generatePublicLink(kodeAkses);
 
-  // 🚀 7. TRANSACTION
   return prisma.$transaction(async (tx) => {
     if (kuesioner.status === "Draft") {
       await tx.kuesioner.update({
@@ -135,9 +122,7 @@ export const createDistribusiService = async (kuesionerId, data) => {
   });
 };
 
-// ======================================================
 // UPDATE DISTRIBUSI
-// ======================================================
 export const updateDistribusiService = async (id, data) => {
   const distribusiId = Number(id);
 
@@ -146,12 +131,11 @@ export const updateDistribusiService = async (id, data) => {
   });
 
   const now = new Date();
-  
-  // Gunakan data baru atau data lama jika tidak diupdate.
+
   const start = data.tanggalMulai ? new Date(data.tanggalMulai) : distribusi.tanggalMulai;
   let end = data.tanggalSelesai ? new Date(data.tanggalSelesai) : distribusi.tanggalSelesai;
 
-  // 🕒 Terapkan Presisi Waktu & Logic 24 jam saat update.
+
   if (data.tanggalMulai || data.tanggalSelesai) {
     if (start.toDateString() === end.toDateString()) {
       end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
@@ -184,9 +168,7 @@ export const updateDistribusiService = async (id, data) => {
   });
 };
 
-// ======================================================
 // DELETE DISTRIBUSI
-// ======================================================
 export const deleteDistribusiService = async (id) => {
   const distribusiId = Number(id);
 

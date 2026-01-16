@@ -12,5 +12,4 @@ function buildDatabaseURL() {
   return `${connection}://${user}:${pass}@${host}:${port}/${database}`;
 }
 
-// PRISMA membutuhkan env DATABASE_URL
 process.env.DATABASE_URL = process.env.DATABASE_URL || buildDatabaseURL();

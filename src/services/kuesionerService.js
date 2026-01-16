@@ -2,7 +2,7 @@ import prisma from "../config/prisma.js";
 import ApiError from "../utils/apiError.js";
 
 
-// get all kuesioner (pagination, search, filter)
+// get all kuesioner 
 export const getKuesionerService = async ({
   search,
   status,
@@ -62,7 +62,7 @@ export const getKuesionerService = async ({
 
 
 
-// get detail kuesioner (variabel + indikator + pertanyaan)
+// get detail kuesioner
 export const getKuesionerByIdService = async (id) => {
   const kuesionerId = Number(id);
 
@@ -162,7 +162,6 @@ export const updateKuesionerService = async (id, updateData) => {
     where: { kuesionerId },
   });
 
-  // ❌ Tidak boleh update kalau bukan Draft
   if (kues.status !== "Draft") {
     throw new ApiError(
       403,
@@ -170,7 +169,6 @@ export const updateKuesionerService = async (id, updateData) => {
     );
   }
 
-  // Field yang boleh diupdate
   const allowed = [
     "judul",
     "tujuan",
@@ -217,7 +215,6 @@ export const deleteKuesionerService = async (id) => {
       throw new ApiError(403, "Kuesioner hanya bisa dihapus ketika status Draft");
     }
 
-    // Cek variabel → indikator & pertanyaan mengikuti variabel
     const existVariabel = await tx.variabel.findFirst({
       where: { kuesionerId },
     });

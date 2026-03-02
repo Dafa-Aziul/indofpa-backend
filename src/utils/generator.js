@@ -15,5 +15,5 @@ export const generateAccessCode = (length = 8) => {
  * @returns {string}
  */
 export const generatePublicLink = (kodeAkses) => {
-  return `${process.env.APP_PUBLIC_URL}/kuesioner/${kodeAkses}`;
+  return `${process.env.CLIENT_URL}/kuesioner/submit/${kodeAkses}`;
 };

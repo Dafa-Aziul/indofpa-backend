@@ -20,6 +20,9 @@ import {
 
 import variabelRoute from "./variabelRoute.js";
 import distribusiRoute from "./distribusiRoute.js"
+import { importKuesionerController } from "../controllers/importKuesionerController.js";
+import { importKuesionerValidator } from "../middlewares/validators/importKuesioneValidator.js";
+import upload from "../middlewares/uploadExcel.js";
 
 const router = Router();
 
@@ -66,5 +69,14 @@ router.patch(
 router.use("/:kuesionerId/variabel", variabelRoute);
 router.use("/:kuesionerId/distribusi", distribusiRoute);
 
+
+// IMPORT KUESIONER
+router.post(
+  "/import",
+  upload.single("file"), // Middleware untuk menangani upload file (field name: file)
+  authMiddleware,
+  importKuesionerValidator,
+  importKuesionerController
+);
 
 export default router;

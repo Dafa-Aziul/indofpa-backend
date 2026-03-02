@@ -1,5 +1,8 @@
 import { Router } from "express";
 
+import { importRespondenController } from "../controllers/importRespondenController.js";
+import upload from "../middlewares/uploadExcel.js";
+
 import {
   getMonitoringList,
   getRespondenList,
@@ -47,5 +50,10 @@ router.get(
   exportKuesionerExcel
 );
 
+router.post(
+    "/:kuesionerId/import-responden",
+    upload.single("file"),
+    importRespondenController
+);
 
 export default router;

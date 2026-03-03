@@ -9,7 +9,9 @@ function buildDatabaseURL() {
   const user = process.env.DB_USERNAME || "";
   const pass = process.env.DB_PASSWORD || "";
 
-  return `${connection}://${user}:${pass}@${host}:${port}/${database}`;
+  const encodedPass = encodeURIComponent(pass);
+
+  return `${connection}://${user}:${encodedPass}@${host}:${port}/${database}`;
 }
 
 process.env.DATABASE_URL = process.env.DATABASE_URL || buildDatabaseURL();

@@ -33,7 +33,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // API ROUTES
-app.use("/api", routes);
+app.use("/", routes);
 
 // Error Handler
 app.use(errorHandler);

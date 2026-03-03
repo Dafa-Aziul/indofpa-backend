@@ -6,7 +6,7 @@
 
 */
 -- AlterTable
-ALTER TABLE `refreshtoken` ADD COLUMN `jti` VARCHAR(191) NOT NULL;
+ALTER TABLE `RefreshToken` ADD COLUMN `jti` VARCHAR(191) NOT NULL;
 
 -- CreateIndex
 CREATE UNIQUE INDEX `RefreshToken_jti_key` ON `RefreshToken`(`jti`);

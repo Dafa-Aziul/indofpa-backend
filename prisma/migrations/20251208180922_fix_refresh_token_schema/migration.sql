@@ -1,5 +1,5 @@
 -- DropIndex
-DROP INDEX `RefreshToken_token_key` ON `refreshtoken`;
+DROP INDEX `RefreshToken_token_key` ON `RefreshToken`;
 
 -- AlterTable
-ALTER TABLE `refreshtoken` MODIFY `token` TEXT NOT NULL;
+ALTER TABLE `RefreshToken` MODIFY `token` TEXT NOT NULL;

@@ -19,7 +19,7 @@ app.use(
   })
 );
 
-// ORS — Auto Switch
+// ORS   — Auto Switch
 if (isDev) {
   console.log("🌱 Development mode: CORS open");
   app.use(cors({ origin: true, credentials: true }));

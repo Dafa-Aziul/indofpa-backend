@@ -4,7 +4,7 @@ export const corsOptions = {
       process.env.CLIENT_URL,
       process.env.APP_PUBLIC_URL,
     ].filter(Boolean);
-
+    
     if (!origin) return callback(null, true);
 
     if (allowed.includes(origin)) {

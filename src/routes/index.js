@@ -49,8 +49,10 @@ router.use("/public", publicRoute);
 // monitoring
 router.use("/monitoring", monitoringRoute);
 
+// analisis
 router.use("/analisis", analisisRoute);
 
+// dashboard
 router.use("/dashboard", dashbboardRoute)
 
 

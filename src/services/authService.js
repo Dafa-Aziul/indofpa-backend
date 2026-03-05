@@ -1,6 +1,7 @@
 import prisma from "../config/prisma.js";
 import bcrypt from "bcrypt";
 import { createAccessToken, createRefreshToken, verifyRefreshToken } from "../utils/jwt.js";
+import ApiError from "../utils/apiError.js";
 
 // Convert "7d" / "1d" / "30d" → ms
 const ms = (str) => {
@@ -147,4 +148,38 @@ export const rotateRefreshTokenService = async (oldRefreshToken) => {
 export const logoutService = async (refreshToken) => {
   await prisma.refreshToken.deleteMany({ where: { token: refreshToken } });
   return { success: true, message: "Logout berhasil" };
+};
+
+
+export const changePasswordService = async (userId, data) => {
+
+  const { currentPassword, newPassword } = data;
+
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { userId }
+  });
+
+  // cek password lama
+  const isMatch = await bcrypt.compare(currentPassword, user.password);
+
+  if (!isMatch) {
+    throw new ApiError(400, "Password lama salah.");
+  }
+
+  // tidak boleh sama dengan password lama
+  const isSame = await bcrypt.compare(newPassword, user.password);
+
+  if (isSame) {
+    throw new ApiError(400, "Password baru tidak boleh sama dengan password lama.");
+  }
+
+  // hash password baru
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  await prisma.user.update({
+    where: { userId },
+    data: { password: hashedPassword }
+  });
+
+  return null;
 };

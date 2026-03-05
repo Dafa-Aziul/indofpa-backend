@@ -1,5 +1,5 @@
 import { success } from "../utils/response.js";
-import { loginService, logoutService, rotateRefreshTokenService } from "../services/authService.js";
+import { loginService, logoutService, rotateRefreshTokenService, changePasswordService } from "../services/authService.js";
 import { cookieConfig } from "../utils/cookieConfig.js";
 import ApiError from "../utils/apiError.js";
 
@@ -100,6 +100,20 @@ export const logout = async (req, res, next) => {
 
 
     return success(res, "Logout berhasil");
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const changePassword = async (req, res, next) => {
+  try {
+
+    const userId = req.user.userId;
+
+    const result = await changePasswordService(userId, req.body);
+
+    return success(res, "Password berhasil diperbarui", result);
+
   } catch (err) {
     next(err);
   }

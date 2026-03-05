@@ -53,6 +53,7 @@ router.get(
 router.post(
     "/:kuesionerId/import-responden",
     upload.single("file"),
+    authMiddleware,
     importRespondenController
 );
 

@@ -106,7 +106,11 @@ export const importRespondenService = async (filePath, kuesionerId) => {
         throw new ApiError(400, "Sheet 'Responden' dan 'Jawaban' wajib ada.");
 
     const pertanyaanList = await prisma.pertanyaan.findMany({
-        where: { indikator: { variabel: { kuesionerId: Number(kuesionerId) } } },
+        where: {
+            indikator: {
+                variabel: { kuesionerId: Number(kuesionerId) }
+            }
+        },
         orderBy: { urutan: "asc" }
     });
 
@@ -114,89 +118,170 @@ export const importRespondenService = async (filePath, kuesionerId) => {
         throw new ApiError(400, "Tidak ada pertanyaan pada kuesioner ini.");
 
     const pertanyaanMap = {};
-    pertanyaanList.forEach((p, idx) => (pertanyaanMap[idx + 1] = p));
+    pertanyaanList.forEach((p, idx) => {
+        pertanyaanMap[idx + 1] = p;
+    });
 
-    // Cache indikator di luar loop agar tidak query berulang-ulang
     const indikatorList = await prisma.indikator.findMany({
         where: { variabel: { kuesionerId: Number(kuesionerId) } },
         include: { pertanyaan: true }
     });
 
-    // 1. TAMBAHKAN TIMEOUT DI SINI (Ubah ke 60 detik)
     return await prisma.$transaction(async (tx) => {
-        const respondenMap = {};
-        const rows = sheetResponden.getRows(2, sheetResponden.rowCount - 1) || [];
 
-        // STEP 1 — IMPORT RESPONDEN (Tetap loop karena kita butuh respondenId satu per satu)
+        const respondenMap = {};
+
+        const rows =
+            sheetResponden.getRows(2, sheetResponden.rowCount - 1) || [];
+
+        /* =========================================
+           STEP 1 — IMPORT RESPONDEN
+        ========================================= */
+
         for (const row of rows) {
+
             const email = getCellString(row.getCell(1));
             const nama = getCellString(row.getCell(2));
             const usiaKategori = mapUsia[getCellString(row.getCell(3))];
             const jenisKelamin = mapJenis[getCellString(row.getCell(4))];
-            const tingkatPendidikan = mapPendidikan[getCellString(row.getCell(5))];
+            const tingkatPendidikan =
+                mapPendidikan[getCellString(row.getCell(5))];
             const agama = mapAgama[getCellString(row.getCell(6))];
             const pekerjaan = getCellString(row.getCell(7)) || null;
 
-            if (!email) continue; 
+            if (!email) continue;
 
             const r = await tx.respondenProfile.create({
                 data: {
-                    email, nama, kuesionerId: Number(kuesionerId),
-                    usiaKategori, jenisKelamin, tingkatPendidikan, agama, pekerjaan,
+                    email,
+                    nama,
+                    kuesionerId: Number(kuesionerId),
+                    usiaKategori,
+                    jenisKelamin,
+                    tingkatPendidikan,
+                    agama,
+                    pekerjaan,
                     waktuMulai: new Date(),
                 },
             });
+
             respondenMap[email] = r;
         }
 
-        // STEP 2 — VALIDASI HEADER (Logika tetap sama)
+        /* =========================================
+           STEP 2 — VALIDASI HEADER JAWABAN
+        ========================================= */
+
         const headerRow = sheetJawaban.getRow(1);
+
         const headerUrutanList = [];
         const headerColMap = {};
+
         headerRow.eachCell((cell, col) => {
+
             if (col === 1) return;
+
             const match = /^no_(\d+)$/i.exec(getCellString(cell));
+
             if (match) {
                 const urutan = Number(match[1]);
                 headerUrutanList.push(urutan);
                 headerColMap[urutan] = col;
             }
+
         });
 
-        // STEP 3 — OPTIMASI JAWABAN (Gunakan createMany)
-        const jawabanRows = sheetJawaban.getRows(2, sheetJawaban.rowCount - 1);
+        /* =========================================
+           VALIDASI JUMLAH PERTANYAAN
+        ========================================= */
+
+        const jumlahPertanyaanDB = pertanyaanList.length;
+        const jumlahPertanyaanExcel = headerUrutanList.length;
+
+        if (jumlahPertanyaanExcel !== jumlahPertanyaanDB) {
+            throw new ApiError(
+                400,
+                `Jumlah kolom jawaban tidak sesuai dengan jumlah pertanyaan kuesioner. 
+Excel: ${jumlahPertanyaanExcel}, 
+Kuesioner: ${jumlahPertanyaanDB}`
+            );
+        }
+
+        /* =========================================
+           VALIDASI URUTAN PERTANYAAN
+        ========================================= */
+
+        for (const urutan of headerUrutanList) {
+
+            if (!pertanyaanMap[urutan]) {
+                throw new ApiError(
+                    400,
+                    `Kolom no_${urutan} tidak ditemukan pada kuesioner`
+                );
+            }
+
+        }
+
+        /* =========================================
+           STEP 3 — IMPORT JAWABAN
+        ========================================= */
+
+        const jawabanRows =
+            sheetJawaban.getRows(2, sheetJawaban.rowCount - 1);
+
         const allJawabanToCreate = [];
 
         for (const row of jawabanRows) {
+
             const email = getCellString(row.getCell(1));
+
             if (!email) continue;
+
             const responden = respondenMap[email];
+
             if (!responden) continue;
 
             for (const urutan of headerUrutanList) {
+
                 const col = headerColMap[urutan];
                 const nilai = Number(row.getCell(col).value);
+
                 const p = pertanyaanMap[urutan];
-                
+
                 if (p && !isNaN(nilai)) {
+
                     allJawabanToCreate.push({
                         respondenId: responden.respondenId,
                         pertanyaanId: p.pertanyaanId,
                         nilai: nilai,
                     });
+
                 }
+
             }
         }
 
-        // Eksekusi Massal Jawaban (Jauh lebih cepat daripada looping create)
         if (allJawabanToCreate.length > 0) {
-            await tx.jawaban.createMany({ data: allJawabanToCreate });
+
+            await tx.jawaban.createMany({
+                data: allJawabanToCreate
+            });
+
         }
 
-        // STEP 4 — HITUNG SKOR
-        // Dilakukan setelah createMany agar data jawaban sudah ada di DB
+        /* =========================================
+           STEP 4 — HITUNG SKOR
+        ========================================= */
+
         for (const email in respondenMap) {
-            await hitungSkorResponden(tx, respondenMap[email].respondenId, kuesionerId, indikatorList);
+
+            await hitungSkorResponden(
+                tx,
+                respondenMap[email].respondenId,
+                kuesionerId,
+                indikatorList
+            );
+
         }
 
         return {
@@ -204,8 +289,9 @@ export const importRespondenService = async (filePath, kuesionerId) => {
             responden: Object.keys(respondenMap).length,
             jawaban: allJawabanToCreate.length
         };
+
     }, {
         maxWait: 5000,
-        timeout: 60000 // Beri waktu 1 menit untuk proses 431 data
+        timeout: 60000
     });
 };

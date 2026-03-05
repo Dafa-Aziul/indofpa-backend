@@ -11,6 +11,7 @@ import {
   getAnalisisValidator,
   updateAnalisisConfigValidator
 } from "../middlewares/validators/analisisValidator.js";
+import { authMiddleware } from "../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -22,12 +23,14 @@ const router = express.Router();
 router.get(
   "/", 
   getAnalisisKuesionerListValidator, 
+  authMiddleware,
   getAnalisisKuesionerList
 );
 
 // 📌 Ambil hasil analisis lengkap (pertanyaan → indikator → variabel → overall)
 router.get(
   "/:kuesionerId",
+    authMiddleware,
   getAnalisisValidator,
   getAnalisis
 );
@@ -35,6 +38,7 @@ router.get(
 // 📌 Update konfigurasi analisis (rentang skor, label interpretasi dll)
 router.put(
   "/:kuesionerId/config",
+  authMiddleware,
   updateAnalisisConfigValidator,
   updateAnalisisConfig
 );
@@ -42,6 +46,7 @@ router.put(
 // POST update config analisis
 router.post(
   "/:kuesionerId/config",
+  authMiddleware,
   updateAnalisisConfigValidator,
   updateAnalisisConfig
 );

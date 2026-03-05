@@ -28,3 +28,23 @@ export const validateLogin = [
     next();
   }
 ];
+
+export const changePasswordValidator = [
+
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("Password lama wajib diisi"),
+
+  body("newPassword")
+    .isLength({ min: 8 })
+    .withMessage("Password minimal 8 karakter"),
+
+  body("confirmPassword")
+    .custom((value, { req }) => {
+      if (value !== req.body.newPassword) {
+        throw new Error("Konfirmasi password tidak sama");
+      }
+      return true;
+    })
+
+];

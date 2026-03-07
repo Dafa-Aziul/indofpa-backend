@@ -22,6 +22,15 @@ export const login = async (req, res, next) => {
       cookieConfig(remember ? 30 * 86400000 : 7 * 86400000)
     );
 
+    res.cookie(
+      "user",
+      JSON.stringify(user),
+      {
+        ...cookieConfig(remember ? 30 * 86400000 : 7 * 86400000),
+        httpOnly: false,
+      }
+    );
+
 
     return success(res, "Login berhasil", { user, accessToken });
   } catch (err) {

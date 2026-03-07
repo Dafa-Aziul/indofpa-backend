@@ -9,7 +9,7 @@ const isDev = process.env.NODE_ENV !== "production";
 // });
 export const cookieConfig = (maxAge) => ({
     httpOnly: true,
-    secure: false,
+    secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
     maxAge,
